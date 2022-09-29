@@ -9,7 +9,7 @@ Student: *Curmanschii Anton, MIA2022.*
 
 Atributele în C# reprezintă capacitatea limbajului care permite asocia date adăugătoare cu entitățile din cod, ca câmpuri, proprietăți, tipuri, metode, etc.
 Atributele permit moduri noi de realizare a sarcinilor în program, realizând atribuirea datelor statice într-un mod declarativ.
-Ele sunt des folosite în librării care vor să ofere un API declarativ, și de obicei sunt prelucrate și interpretate folosind reflexia în timpul rulării programului.
+Ele sunt des folosite în librării care vor să ofere un API declarativ, și de obicei sunt prelucrate și interpretate folosind reflecția în timpul rulării programului.
 
 
 ## Cum se folosească atributele
@@ -39,12 +39,12 @@ Atributele în C# pot fi folosite în următoarele cazuri de utilizare:
   Faptul dat este folosit, de exemplu, de către `BinarySerializer` pentru a determina dacă un tip trebuie sau nu trebuie să fie sălvat.
 
 
-- Adăugarea informațiilor specifice unei librării, analizate folosind reflexie runtime de către funcțiile acelei librării; folosirea atributelor în codul propriu.
+- Adăugarea informațiilor specifice unei librării, analizate folosind reflecție runtime de către funcțiile acelei librării; folosirea atributelor în codul propriu.
 
-  De exemplu, librăria ASP.NET Core folosește foarte mult reflexia.
+  De exemplu, librăria ASP.NET Core folosește foarte mult reflecția.
   Librăria definește, de exemplu, atributele `[ApiController]`, `[HttpGet]`, `[HttpPost]` etc. pentru definirea endpoint-urilor; `[FromBody]`, `[FromRoute]`, `[FromQuery]` etc. pentru a specifica modul de bindare a parametrilor; `[Email]`, `[Range]`, `[Required]` etc. pentru definirea contractelor tipurilor și realizarea validării.
 
-  Putem defini și atributele proprii, analizându-le în timpul rulării programului folosind reflexia runtime.
+  Putem defini și atributele proprii, analizându-le în timpul rulării programului folosind reflecția runtime.
   Acest aspect va fi descris mai detaliat mai târziu.
 
 
@@ -55,7 +55,9 @@ Atributele în C# pot fi folosite în următoarele cazuri de utilizare:
   Ca exemplu pot fi menționate diferitele generatori de sursă care lucrează împreună cu compilatorul C#, ori instrumentele ca MagicOnion, MessagePack, sau generatorul meu de cod Kari care generează codul înainte de compilare pe baza informațiilor din fișierile-sursă.
 
 
-## Unele exemple minime
+## Exemple
+
+### Unele exemple minime
 
 Chiar tipurile primitive în C# au câteva atribute care pot fi analizate prin cod.
 De exemplu, următorul programul minim afișează trei atribute:
@@ -89,7 +91,7 @@ class A {}
 ```
 
 Încă un exemplu mai complex.
-În acest caz creez un atribut personalizat, îl aplic la un alt tip, pe urmă folosesc reflexia pentru a-l lua de pe tip, și afișez valoarea câmpului.
+În acest caz creez un atribut personalizat, îl aplic la un alt tip, pe urmă folosesc reflecția pentru a-l lua de pe tip, și afișez valoarea câmpului.
 
 ```csharp
 using System.Reflection;
@@ -115,7 +117,7 @@ class Program
 {
     static void Main()
     {
-        // Se folosește reflexia runtime pentru a lua atributul nostru de pe tip.
+        // Se folosește reflecția runtime pentru a lua atributul nostru de pe tip.
         var attr = typeof(A).GetCustomAttribute<TestAttribute>()!;
         int fieldValue = attr.FieldValue;
 
@@ -126,7 +128,7 @@ class Program
 ```
 
 
-## Exemplu program - ArgumentParser
+### Exemplu program - ArgumentParser
 
 > În următorul exemplu se va implementa parsarea argumentelor din linie de comandă.
 
@@ -148,7 +150,7 @@ Urmează câteva exemple de apelare:
 
 | Executat ca                        | Rezultatul așteptat                                                                  |
 |------------------------------------|--------------------------------------------------------------------------------------|
-| `program`                          | lipsesc opțiunile `A` și `B`                                                        |
+| `program`                          | lipsesc opțiunile `A` și `B`                                                         |
 | `program --A 123`                  | lipsește opțiunea `B`                                                                |
 | `program --A 123 --B`              | lipsește o valoare pentru opțiunea `B`                                               |
 | `program --A 123 --B abc`          | succes, `A` primește valoarea `123`, iar `B` — `"abc"`                               |
@@ -196,11 +198,11 @@ class Program
 }
 ```
 
-Clar că pentru a putea defini un nume diferit decât numele câmpului, afișa un mesaj de ajutor personalizat, și ca funcția `ArgumentParser.TryParse` să fie atât de generală ca să poată lucra cu orice tip, fără a o supraîncărca pentru orice tip nou de modelul de argumente care vrem să-l suportăm, trebuie, în primul rând, s-o facem generică, ca să cunoască despre tipul în care va fi realizată conversiunea, și trebuie să atribuim informații adaugătoare cu numele opțiunii și mesajul de ajutor la fiecare câmp ce urmează să țină o valoare pentru opțiunea specifică.
+Clar că pentru a putea defini un nume diferit decât numele câmpului, afișa un mesaj de ajutor personalizat, și ca funcția `ArgumentParser.TryParse` să fie atât de generală ca să poată lucra cu orice tip, fără a o supraîncărca pentru orice tip nou de modelul de argumente care vrem să-l suportăm, trebuie, în primul rând, s-o facem generică, ca să cunoască despre tipul în care va fi realizată conversiunea, și trebuie să atribuim informații adaugătoare cu numele opțiunii și mesajul de ajutor la fiecare câmp ce urmează să țină o valoare pentru o opțiune specifică.
 Putem adăuga niște informații direct la câmpuri, folosind un atribut personalizat.
 Vom defini un tip nou `OptionAttribute` care să țină câte o valoare pentru numele opțiunii și mesajul de ajutor.
-Permitem doar apelarea la un câmp, folosind atributul `AttributeUsage`.
-Deoarece un nume nou este opțional, definesc două constructor, unul cu nume, altul fără.
+Permitem doar aplicarea la câmpuri, folosind atributul `AttributeUsage`.
+Deoarece un nume nou este opțional, definesc două constructori, unul cu nume, altul fără.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Field)]
@@ -238,7 +240,7 @@ class ArgumentModel
 ```
 
 
-Acum vom implementa funcția generică `TryParse`.
+Implementăm prototipul funcției generice `TryParse`.
 
 ```csharp
 public static class ArgumentParser
@@ -262,12 +264,12 @@ public static class ArgumentParser
 ```
 
 Acum vom discuta logica funcționării acestei funcții:
-- Se vor parsa argumentele, detectând pattern-ul de formă `--key value` și se va crea o mapare de aceștia (un tablou asociativ `key -> value`);
+- Se vor parsa argumentele, detectând pattern-ul de formă `--key value` și se va crea o mapare de acestea (un tablou asociativ `key -> value`);
 - Se vor detecta câmpurile tipului modelului care vor conține valorile pentru opțiuni;
 - Pentru fiecare câmp, se va încerca a-i găsi o valoare asociată din tabloul asociativ, obținut anterior;
-- Se va încerca a converta șirul crud păstrat în tabelul asociativ în tipul concret al câmpului.
+- Se va încerca a converta șirul crud păstrat în tabelul asociativ în tipul concret al câmpului;
 - Se vor atribui valorile concrete obținute după parsare la câmpuri asociate;
-- Dacă nu au avut loc greșeli, vom returna obiectul final.
+- Dacă nu au avut loc erori, vom returna obiectul final.
 
 ```csharp
 // Se atribuie valoarea `null` dacă modelul este o clasă,
@@ -287,7 +289,7 @@ for (int i = 0; i < args.Length; i++)
         i++;
         if (i >= args.Length)
         {
-            Console.WriteLine("Argument without value: " + name);
+            Console.WriteLine("Option without value: " + name);
             return false;
         }
         var value = args[i];
@@ -305,7 +307,7 @@ for (int i = 0; i < args.Length; i++)
 bool isError = false;
 var obj = new T();
 
-// Se folosește reflexia runtime pentru a primi informații despre câmpurile tipului.
+// Se folosește reflecția runtime pentru a primi informații despre câmpurile tipului.
 foreach (var field in typeof(T).GetFields())
 {
     // Ne interesează câmpurile cu atributul [Option], altfel le ignorăm.
@@ -365,6 +367,11 @@ public static class ArgumentParser
 
     internal static IEnumerable<(FieldInfo, OptionAttribute)> GetFieldsWithOptions(System.Type type)
     {
+        // cu Linq:
+        // type.GetFields()
+        //     .Select(f => (f, f.GetCustomAttribute<OptionAttribute>()))
+        //     .Where(fo => f.Item1 is not null);
+
         foreach (var field in type.GetFields())
         {
             var optionAttribute = field.GetCustomAttribute<OptionAttribute>();
@@ -415,7 +422,250 @@ Hello, tipul 'Int32', help 'Help message for Hello'
 OtherName, tipul 'String', help 'A renamed option' 
                                             
 $ dotnet run --OtherName                           
-Argument without value: OtherName                  
+Option without value: OtherName                  
 Hello, tipul 'Int32', help 'Help message for Hello'
 OtherName, tipul 'String', help 'A renamed option' 
 ```
+
+
+## Informații teoretice
+
+
+### Sintaxa definirii atributelor
+
+Atributele se definesc ca clase normale, doar că trebuie să moștenească tipul `System.Attribute`.
+De obicei, sunt numite `XXXAttribute`, deoarece dacă termină cu `Attribute`, se permite omiterea sfârșitului `Attribute` la aplicare.
+
+Exemplu de definire unui tip de atribut personalizat:
+```csharp
+using System;
+
+public class StuffAttribute : Attribute 
+{
+    // ...
+}
+```
+
+Clasele atributelor funcționează ca orice clasă obișnuită.
+Este posibil să definească câmpuri, proprietăți de orice tip, metode, constructori cu orice parametri, de folosit moștenirea și atribute abstracte, de implementat interfețe, etc.
+Trebuie să țineți minte doar faptul că la aplicare veți putea atribui doar valorile primitive constante, tipuri, object, sau tablouri de object.
+Adică dacă aveți o proprietate de tip `StringBuilder`, nu veți putea a-i da valoare la aplicarea atributului.
+
+```csharp
+using System;
+
+public class StuffAttribute : Attribute 
+{
+    public StringBuilder Builder { get; set; }
+}
+
+// Eroarea compilării.
+[Stuff(Builder = new StringBuilder())]
+
+// Ok.
+[Stuff()]
+```
+
+Adaugător, se poate aplica atributul `AttributeUsage` pentru a specifica la ce entități va fi posibil să aplice atributul dat, dacă se permite aplicarea multiplă, și dacă atributul trebuie să fie moștenit de un tip derivat.
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public class StuffAttribute : Attribute 
+{
+}
+
+// Se admite aplicarea multiplă la clase.
+[Stuff]
+[Stuff]
+[Stuff]
+class A {}
+
+// Eroarea compilării: B este o structură.
+[Stuff]
+struct B {}
+
+// Aplicarea singulară tot se admite.
+[Stuff]
+class C {}
+```
+
+Există încă un atribut aplicabil pentru tipuri noi de atribute, `Conditional`.
+Acesta lasă informațiile adăugate de atribut numai dacă este definit un simbol de compilare concret:
+
+
+```csharp
+using System;
+
+// De adăugat la entități numai dacă simbolul "DEBUG" este definit.
+[Conditional("DEBUG")]
+public class StuffAttribute : Attribute 
+{
+}
+
+[Stuff]
+class A {}
+
+class Program
+{
+    static void Main()
+    {
+        var attr = typeof(A).GetCustomAttribute<StuffAttribute>();
+
+        // Afișează True dacă atributul s-a găsit.
+        Console.WriteLine(attr is not null);
+    }
+}
+```
+
+```
+$ dotnet run --configuration Release
+False
+
+$ dotnet run --configuration Debug
+True
+```
+
+### Sintaxa aplicării
+
+Atributele pot fi aplicate la următoarele entități:
+- tipurile (clase, structuri, enum);
+- membrii tipurilor (câmpuri (inclusiv câmpurile unui enum), proprietăți, metode, event-uri);
+- parametrile (în metode, [funcții anonime începând cu C# 10](https://github.com/dotnet/csharplang/blob/main/proposals/csharp-10.0/lambda-improvements.md), constructori);
+- asamblajul curent sau modulul asamblajului curent;
+- valoarea returnată de o funcție.
+
+Atributele se aplică la entitatea definită sub atribut, dar aceasta se poate concretizat, folosind sintaxa de target (`[target: attribute]`):
+
+```csharp
+using System;
+
+public class StuffAttribute : Attribute 
+{
+}
+
+// Se aplică la clasa `A`.
+[Stuff]
+class A
+{
+    // Se aplică la proprietatea `Prop`.
+    [Stuff]
+    // Se aplică la câmpul (backing field), generat implicit de către compilator.
+    [field: Stuff]
+    public int Prop { get; set; }
+
+    // Se aplică la metoda `Func`.
+    [Stuff]
+    // Se aplică la valoarea returnată de metoda `Func`.
+    [return: Stuff]
+    public int Func(
+        // Se aplică la parametru.
+        [Stuff] string value)
+    {
+        return 0;
+    }
+}
+```
+
+La aplicare se va decide supraîncărcarea corectă a constructorului, dar putem seta și atributele sau câmpuri în scopul aplicării.
+
+```csharp
+using System;
+
+public class StuffAttribute : Attribute
+{
+    public string Prop { get; set; }
+    public float Field;
+
+    public StuffAttribute(int a, int b)
+    {
+    }
+    public StuffAttribute(string a, string b)
+    {
+    }
+}
+
+// Apelează primul constructor.
+[Stuff(1, 2)]
+// Apelează al doilea constructor.
+[Stuff("abc", "def")]
+// Se permite a folosi constructor cu argumente numite.
+[Stuff(a: 2, b: 5)]
+// După aplicarea constructorului, putem atribui niște valori la câmpuri sau la proprietăți.
+// În cazul dat, `Prop` este setat la "Hello", iar `Field` la 6.
+[Stuff(1, 2, Prop = "Hello", Field = 6.0f)]
+```
+
+
+### Reflecția pentru analiză
+
+Analiza atributelor aplicate la o entitate de obicei se face în timpul rulării programului.
+Pentru aceasta trebuie să obțină informații legate de entitate, după care se folosește metoda `GetCustomAttributes`.
+
+```csharp
+// [Stuff]
+// class A {}
+typeof(A).GetCustomAttribute<StuffAttribute>();
+
+/*
+class A
+{
+    [Stuff] public void B()
+    {
+    }
+}
+*/
+typeof(A).GetMethod("B").GetCustomAttribute<StuffAttribute>();
+
+/*
+class A
+{
+    public void B([Stuff] int arg)
+    {
+    }
+}
+*/
+typeof(A).GetMethod("B").GetParameters()[0].GetCustomAttribute<StuffAttribute>();
+
+// etc.
+```
+
+Se mai poate itera prin toate atributele, filtrându-le manual:
+
+```csharp
+/*
+[Stuff]
+[Thing]
+class A {}
+*/
+foreach (var attr in typeof(A).Attributes)
+{
+    if (attr is StuffAttribute stuffAttr)
+    {
+        // ...
+    }
+    else if (attr is ThingAttribute thingAttr)
+    {
+        // ...
+    }
+    else
+    {
+        Console.WriteLine("Unexpected attribute type: " + attr.GetType().FullName);
+    }
+}
+```
+
+Se mai poate folosi `CustomAttributeData`, care dă informații necesare pentru a instanția atributul manual:
+- Ce fel de supraîncărcarea a constructorului trebuie să fie apelată;
+- Ce argumente au fost trimise în constructor;
+- Ce câmpuri sau proprietăți au fost atribuite după nume.
+
+În practică, niciodată nu am folosit această informație, deoarece de obicei se dorește a primi instanța normală a atributului.
+
+
+## Concluzii
+
+În referatul am discutat relevanța atributelor în C#, în ce cazuri și cu ce scopuri ele se folosesc.
+Am dat mai multe exemple, inclusiv și un program complet care realizează parsarea argumentelor din linie de comandă.
+Am discutat detaliat sintaxa și reflecția necesară pentru a crea, aplica și manipula atributele într-o aplicație.
