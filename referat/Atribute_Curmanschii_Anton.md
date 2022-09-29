@@ -131,6 +131,7 @@ class Program
 ### Exemplu program - ArgumentParser
 
 > În următorul exemplu se va implementa parsarea argumentelor din linie de comandă.
+> Codul întreg: https://github.com/AntonC9018/uni_csharp/blob/6f615fb7dca75023cdb8c00442062792366e0dab/test/ArgParser.cs
 
 Orice program poate fi apelat cu unele argumente de tip `string`, date prin linie de comandă la executare.
 De exemplu, considerând că programul nostru se numește `program`, dacă se apelează:
