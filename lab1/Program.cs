@@ -9,6 +9,7 @@
 */
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 class Program
 {
@@ -495,6 +496,8 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         Console.Write("]");
     }
 
+    [MemberNotNull(nameof(_arrayRef))]
+    [MemberNotNull(nameof(Position))]
     private void AssertInitialized()
     {
         Debug.Assert(_arrayRef is not null);
