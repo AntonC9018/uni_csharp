@@ -4,6 +4,17 @@ Tema: *Atribute în C#.*
 
 Student: *Curmanschii Anton, MIA2022.*
 
+- [Tehnologii avansate de programare](#tehnologii-avansate-de-programare)
+  - [Introducere](#introducere)
+  - [Cum se folosească atributele](#cum-se-folosească-atributele)
+  - [Exemple](#exemple)
+    - [Unele exemple minime](#unele-exemple-minime)
+    - [Exemplu program - ArgumentParser](#exemplu-program---argumentparser)
+  - [Informații teoretice](#informații-teoretice)
+    - [Sintaxa definirii atributelor](#sintaxa-definirii-atributelor)
+    - [Sintaxa aplicării](#sintaxa-aplicării)
+    - [Reflecția pentru analiză](#reflecția-pentru-analiză)
+  - [Concluzii](#concluzii)
 
 ## Introducere
 
@@ -662,7 +673,7 @@ Se mai poate folosi `CustomAttributeData`, care dă informații necesare pentru 
 - Ce argumente au fost trimise în constructor;
 - Ce câmpuri sau proprietăți au fost atribuite după nume.
 
-În practică, niciodată nu am folosit această informație, deoarece de obicei se dorește a primi instanța normală a atributului.
+În practică, niciodată nu am folosit această informație, deoarece de obicei se dorește a primi o instanță normală a atributului.
 
 
 ## Concluzii
