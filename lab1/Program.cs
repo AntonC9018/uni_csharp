@@ -95,9 +95,6 @@ class Program
             var display = new ThreadSleep_ConsoleCursor_Display();
             while (true)
             {
-                void WriteArray(int[] arr) => Console.WriteLine("The array: " + string.Join(',', arr.Select(i => i.ToString())));
-                
-                WriteArray(array);
                 Console.Write("Enter the sort kind to perform (quick).");
                 string? input = Console.ReadLine();
                 display.SetDrawToCurrentPosition();
@@ -109,7 +106,6 @@ class Program
                         display.ArrayRef = arrCopy;
                         Sorting.QuickSort(arrCopy, comparer, display);
                         display.CompleteDrawing();
-                        WriteArray(arrCopy);
                         break;
                     }
 
@@ -478,10 +474,18 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         Console.CursorTop = pos.Top + 1;
         Console.CursorLeft = 0;
         Position = null;
+        Console.ResetColor();
+    }
+
+    private static void WriteValuePadded(int value, int elementWidth)
+    {
+        string strValue = value.ToString().PadLeft(elementWidth);
+        Console.Write(strValue);
     }
 
     private static void DrawState(DrawPosition position, int elementWidth, ReadOnlySpan<int> array)
     {
+        Console.ResetColor();
         Console.CursorTop = position.Top;
         Console.CursorLeft = position.Left;
         Console.Write("[");
@@ -489,9 +493,7 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         {
             if (i != 0)
                 Console.Write(" ");
-            int value = array[i];
-            string strValue = value.ToString().PadLeft(elementWidth);
-            Console.Write(strValue);
+            WriteValuePadded(array[i], elementWidth);
         }
         Console.Write("]");
     }
@@ -506,30 +508,105 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
 
     private void DrawAndSleep(int sleepDuration)
     {
+        Redraw();
+        Thread.Sleep(sleepDuration);
+    }
+
+    private static readonly ConsoleColor[] TwoElementHightlightColorMap = { ConsoleColor.Magenta, ConsoleColor.Cyan, };
+
+    private void WriteHighlighted(int index0, int index1)
+    {
+        WriteColored(index0, index1, TwoElementHightlightColorMap[0], TwoElementHightlightColorMap[1]);
+    }
+
+    private void WriteColored(int index0, int index1, ConsoleColor color0, ConsoleColor color1)
+    {
+        AssertInitialized();
+        
+        var position = Position.Value;
+        Console.CursorTop = position.Top;
+
+        int GetPosOfElement(int left, int index)
+        {
+            return left
+                // [
+                + 1
+                
+                // go to pos
+                + _cachedElementWidth * index
+                
+                // whitespace
+                + index;
+        }
+
+        Console.CursorLeft = GetPosOfElement(position.Left, index0);
+        Console.ForegroundColor = color0;
+        WriteValuePadded(_arrayRef[index0], _cachedElementWidth);
+
+        Console.CursorLeft = GetPosOfElement(position.Left, index1);
+        Console.ForegroundColor = color1;
+        WriteValuePadded(_arrayRef[index1], _cachedElementWidth);
+    }
+
+    private void Redraw()
+    {
         AssertInitialized();
         DrawState(Position.Value, _cachedElementWidth, _arrayRef);
-        Thread.Sleep(sleepDuration);
     }
 
     public void BeginSwap(int index0, int index1)
     {
-        // DrawAndSleep(1000);
+        if (index0 == index1)
+            return;
+        
+        Redraw();
+        WriteHighlighted(index0, index1);
+        Thread.Sleep(1000);
     }
 
     public void EndSwap(int index0, int index1)
     {
-        if (index0 != index1)
-            DrawAndSleep(1000);
+        if (index0 == index1)
+            return;
+            
+        Redraw();
+        WriteHighlighted(index1, index0);
+        Thread.Sleep(1000);
     }
+
+    private struct ComparisonColors
+    {
+        public ConsoleColor EqualColor;
+        public ConsoleColor LessColor;
+        public ConsoleColor GreaterColor;
+        public ConsoleColor HighlightColor;
+    }
+    private static readonly ComparisonColors ComparisonColorMap = new()
+    {
+        EqualColor = ConsoleColor.Yellow,
+        LessColor = ConsoleColor.Red,
+        GreaterColor = ConsoleColor.Green,
+        HighlightColor = ConsoleColor.Cyan,
+    };
 
     public void RecordComparison(int index0, int index1, int comparisonResult)
     {
-        // DrawAndSleep(1000);
+        Redraw();
+        WriteColored(index0, index1, ComparisonColorMap.HighlightColor, ComparisonColorMap.HighlightColor);
+        Thread.Sleep(1000);
+
+        if (comparisonResult == 0)
+            WriteColored(index0, index1, ComparisonColorMap.EqualColor, ComparisonColorMap.EqualColor);
+        else if (comparisonResult < 0)
+            WriteColored(index0, index1, ComparisonColorMap.LessColor, ComparisonColorMap.GreaterColor);
+        else
+            WriteColored(index0, index1, ComparisonColorMap.GreaterColor, ComparisonColorMap.LessColor);
+        Thread.Sleep(1000);        
     }
 
     public void RecordIteration()
     {
-        // DrawAndSleep(1000);
+        DrawAndSleep(1000);
     }
 }
 
