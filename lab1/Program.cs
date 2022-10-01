@@ -8,8 +8,12 @@
     De realizat posibilitatea alegerii diferitor metode de iniţializare a elementelor tabloului: iniţializare de la tastatură, inițializare aleatoare.
 */
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Threading;
 
 class Program
 {
