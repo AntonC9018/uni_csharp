@@ -192,7 +192,7 @@ public static class InputHelper
         }
     }
 
-    public class PositiveNumberConstraint : IInputConstraint<int>
+    public sealed class PositiveNumberConstraint : IInputConstraint<int>
     {
         public static readonly PositiveNumberConstraint Instance = new();
         private PositiveNumberConstraint(){}
@@ -207,7 +207,7 @@ public static class InputHelper
         }
     }
 
-    public class LowerBoundConstraint : IInputConstraint<int>
+    public sealed class LowerBoundConstraint : IInputConstraint<int>
     {
         public int LowerBound { get; set; }
 
