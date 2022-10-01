@@ -612,9 +612,9 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         Console.ResetColor();
     }
 
-    private static void WriteValuePadded(int value, int elementWidth)
+    private static void WriteValuePadded<T>(T? value, int elementWidth)
     {
-        string strValue = value.ToString().PadLeft(elementWidth);
+        string strValue = (value?.ToString() ?? "").PadLeft(elementWidth);
         Console.Write(strValue);
     }
 
