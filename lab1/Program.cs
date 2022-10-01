@@ -92,36 +92,54 @@ class Program
 
         {
             var comparer = Comparer<int>.Default;
-            var display = new ThreadSleep_ConsoleCursor_Display();
+            var arrCopy = array.ToArray();
+            IDisplay<int> display = true
+                ? new ThreadSleep_ConsoleCursor_Display(arrCopy)
+                : new PrintAllOnNewLinesDisplay(arrCopy);
+            
             while (true)
             {
-                Console.Write("Enter the sort kind to perform (quick).");
+                Console.Write("Enter the sort kind to perform (quick / heap / selection): ");
                 string? input = Console.ReadLine();
-                display.SetDrawToCurrentPosition();
                 switch (input)
                 {
                     case "quick":
                     {
-                        var arrCopy = array.ToArray();
-                        display.ArrayRef = arrCopy;
+                        display.BeingDrawing();
                         Sorting.QuickSort(arrCopy, comparer, display);
-                        display.CompleteDrawing();
+                        display.EndDrawing();
                         break;
                     }
 
-                    case null:
+                    case "heap":
+                    {
+                        display.BeingDrawing();
+                        Sorting.HeapSort(arrCopy, comparer, display);
+                        display.EndDrawing();
+                        break;
+                    }
+
+                    case "selection":
+                    {
+                        display.BeingDrawing();
+                        Sorting.SelectionSort(arrCopy, comparer, display);
+                        display.EndDrawing();
+                        break;
+                    }
+
+                    case "q" or null:
                         return;
                     
                     default:
                     {
                         Console.WriteLine(input + " is not a valid option.");
-                        break;
+                        continue;
                     }
                 }
 
+                array.CopyTo(arrCopy.AsSpan());
             }
         }
-
     }
 }
 
@@ -276,6 +294,15 @@ public static class Sorting
         public IComparer<T> Comparer;
         public IDisplay<T> Display;
 
+        public SortContext(Span<T> span, IComparer<T> comparer, IDisplay<T> display)
+        {
+            Comparer = comparer;
+            Display = display; 
+            WholeSpan = span;
+            SpanLength = span.Length;
+            StartIndex = 0;
+        }
+
         public readonly void SwapLocal(int localIndex0, int localIndex1)
         {
             Swap(localIndex0 + StartIndex, localIndex1 + StartIndex);
@@ -298,6 +325,16 @@ public static class Sorting
             int comparisonResult = Comparer.Compare(WholeSpan[index0], WholeSpan[index1]);
             Display.RecordComparison(index0, index1, comparisonResult);
             return comparisonResult;
+        }
+
+        public readonly (int StartIndex, int SpanLength) SaveSpan()
+        {
+            return (StartIndex, SpanLength);
+        }
+
+        public void RestoreSpan((int StartIndex, int SpanLength) span)
+        {
+            (StartIndex, SpanLength) = span;
         }
     } 
 
@@ -349,20 +386,92 @@ public static class Sorting
         IComparer<T> comparer,
         IDisplay<T> display)
     {
-        var context = new SortContext<T>
-        {
-            Comparer = comparer,
-            Display = display, 
-            WholeSpan = span,
-            SpanLength = span.Length,
-            StartIndex = 0,
-        };
+        var context = new SortContext<T>(span, comparer, display);
         quick_sort<T>(ref context);
+    }
+
+    // Interprets SpanLength as the length to consider,
+    // and the StartIndex as the current index.
+    // So doing `.Span` is invalid in this function.
+    internal static void heapify<T>(ref SortContext<T> context)
+    {
+        context.Display.RecordIteration();
+
+        int indexLeft = context.StartIndex * 2 + 1;
+        int indexRight = context.StartIndex * 2 + 2;
+        int indexLargest = context.StartIndex;
+
+        if (indexLeft < context.SpanLength)
+        {
+            if (context.Compare(indexLeft, indexLargest) > 0)
+                indexLargest = indexLeft;
+        }
+
+        if (indexRight < context.SpanLength)
+        {
+            if (context.Compare(indexRight, indexLargest) > 0)
+                indexLargest = indexRight;
+        }
+
+        if (indexLargest != context.StartIndex)
+        {
+            context.Swap(context.StartIndex, indexLargest);
+            context.StartIndex = indexLargest;
+            heapify(ref context);
+        }
+    }
+
+    
+    internal static void heap_sort_internal<T>(ref SortContext<T> context)
+    {
+        int size = context.SpanLength;
+        for (int i = size / 2; i > 0; i--)
+        {
+            context.StartIndex = i - 1;
+            heapify(ref context);
+        }
+
+        for (int i = size - 1; i > 0; i--)
+        {
+            context.Swap(0, i);
+            context.StartIndex = 0;
+            context.SpanLength = i;
+            heapify(ref context);
+        }
+    }
+
+    public static void HeapSort<T>(Span<T> span, IComparer<T> comparer, IDisplay<T> display)
+    {
+        var context = new SortContext<T>(span, comparer, display);
+        heap_sort_internal(ref context); 
+    }
+
+    public static void SelectionSort<T>(Span<T> span, IComparer<T> comparer, IDisplay<T> display)
+    {
+        var context = new SortContext<T>(span, comparer, display);
+        while (context.SpanLength != 0)
+        {
+            // find the minimum
+            int minIndex = 0;
+            for (int i = 1; i < context.SpanLength; i++)
+            {
+                if (context.CompareLocal(i, minIndex) < 0)
+                    minIndex = i;
+            }
+
+            context.SwapLocal(minIndex, 0);
+
+            context.StartIndex++;
+            context.SpanLength--;
+        }
     }
 }
 
 public interface IDisplay<T>
 {
+    void BeingDrawing();
+    void EndDrawing();
+    
     void RecordIteration();
     void RecordComparison(int index0, int index1, int comparisonResult);
     void BeginSwap(int index0, int index1);
@@ -430,6 +539,14 @@ public sealed class PrintAllOnNewLinesDisplay : IDisplay<int>
         WriteState(ArrayRef);
         Console.WriteLine();
     }
+
+    public void BeingDrawing()
+    {
+    }
+
+    public void EndDrawing()
+    {
+    }
 }
 
 public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
@@ -465,6 +582,11 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
             Top = Console.CursorTop,
             Left = Console.CursorLeft,
         };
+    }
+    
+    public ThreadSleep_ConsoleCursor_Display(int[] arrayRef)
+    {
+        ArrayRef = arrayRef;
     }
 
     public void CompleteDrawing()
@@ -607,6 +729,16 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
     public void RecordIteration()
     {
         DrawAndSleep(1000);
+    }
+
+    void IDisplay<int>.BeingDrawing()
+    {
+        SetDrawToCurrentPosition();
+    }
+
+    void IDisplay<int>.EndDrawing()
+    {
+        CompleteDrawing();
     }
 }
 
