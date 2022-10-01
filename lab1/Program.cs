@@ -50,7 +50,9 @@ class Program
                     {
                         int t;
                         // Keep generating random values until we get one that has not been encountered before.
-                        // We are guaranteed to be able to fill up the array randomly, because 
+                        // We are guaranteed to be able to fill up the array randomly, because the max value
+                        // has been capped manually such that there are at least as many random values possible
+                        // as the size of the array.
                         while (!valuesMet.Add(
                             t = rand.Next(min.Value, max.Value)))
                         {
