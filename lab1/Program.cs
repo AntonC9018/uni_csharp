@@ -8,6 +8,8 @@
     De realizat posibilitatea alegerii diferitor metode de iniţializare a elementelor tabloului: iniţializare de la tastatură, inițializare aleatoare.
 */
 
+namespace Laborator1;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,9 +17,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
-class Program
+internal class Program
 {
-    static void Main()
+    public static void Main()
     {
         int[] array;
         switch (InputHelper.ReadInitializationKind())
@@ -161,6 +163,12 @@ public static class RandomHelper
     }
 }
 
+public enum ArrayInitializationKind
+{
+    Random,
+    Console,
+}
+
 public static class InputHelper
 {
     public static ArrayInitializationKind? ReadInitializationKind()
@@ -286,7 +294,6 @@ public static class Helper
         return numDigits;
     }
 }
-
 
 public static class Sorting
 {
@@ -747,11 +754,3 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         CompleteDrawing();
     }
 }
-
-
-public enum ArrayInitializationKind
-{
-    Random,
-    Console,
-}
-
