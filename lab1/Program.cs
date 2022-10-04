@@ -98,13 +98,61 @@ internal class Program
                 return;
         }
 
+        var arrCopy = array.ToArray();
+        IDisplay<int>? display = null;
+        while (display is null)
+        {
+            Console.Write("Which kind of visualization to use (color, animation, dump)? ");
+            string? input = Console.ReadLine();
+            switch (input)
+            {
+                case "color":
+                {
+                    var color = new ThreadSleep_ConsoleCursor_Colorful_Display(arrCopy);
+
+                    int? sleepDuration = InputHelper.GetPositiveNumber("Sleep duration (ms): ");
+                    if (!sleepDuration.HasValue)
+                        return;
+                    color.SleepDurationMilliseconds = sleepDuration.Value;
+
+                    display = color;
+                    break;
+                }
+                case "animation":
+                {
+                    var animation = new ThreadSleep_ConsoleCursor_Animated_Display(arrCopy);
+
+                    int? actionDuration = InputHelper.GetPositiveNumber("Action duration (ms): ");
+                    if (!actionDuration.HasValue)
+                        return;
+                    animation.ActionAnimationDurationMilliseconds = actionDuration.Value;
+                    
+                    int? swapDuration = InputHelper.GetPositiveNumber("Swap duration (ms): ");
+                    if (!swapDuration.HasValue)
+                        return;
+                    animation.SwapAnimationDurationMilliseconds = swapDuration.Value;
+                    
+                    display = animation;
+                    break;
+                }
+                case "dump":
+                {
+                    display = new PrintAllOnNewLinesDisplay(arrCopy);
+                    break;
+                }
+                
+                case "q" or null:
+                    return;
+
+                default:
+                {
+                    Console.WriteLine(input + " is not a valid option.");
+                    continue;
+                }
+            }
+        }
         {
             var comparer = Comparer<int>.Default;
-            var arrCopy = array.ToArray();
-            IDisplay<int> display = true
-                ? new ThreadSleep_ConsoleCursor_Display(arrCopy)
-                : new PrintAllOnNewLinesDisplay(arrCopy);
-            
             while (true)
             {
                 Console.Write("Enter the sort kind to perform (quick / heap / selection): ");
@@ -562,83 +610,219 @@ public sealed class PrintAllOnNewLinesDisplay : IDisplay<int>
     }
 }
 
-public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
+public static class DrawHelper
 {
-    private int[]? _arrayRef;
-    private int _cachedElementWidth;
-
-    public int[]? ArrayRef
-    {
-        get
-        {
-            return _arrayRef;
-        }
-        set
-        {
-            if (value is not null)
-                _cachedElementWidth = Helper.GetNumDecimalDigits(value.Max());
-            _arrayRef = value;
-        }
-    }
-
     public struct DrawPosition
     {
         public int Top;
         public int Left;
     }
-    public DrawPosition? Position { get; set; }
 
-    public void SetDrawToCurrentPosition()
+    public static DrawPosition GetCurrentDrawPosition()
     {
-        Position = new()
+        return new()
         {
             Top = Console.CursorTop,
             Left = Console.CursorLeft,
         };
     }
-    
-    public ThreadSleep_ConsoleCursor_Display(int[] arrayRef)
+
+    public static void SetConsolePosition(DrawPosition position)
     {
-        ArrayRef = arrayRef;
+        Console.CursorTop = position.Top;
+        Console.CursorLeft = position.Left;
     }
 
-    public void CompleteDrawing()
-    {
-        Debug.Assert(Position.HasValue);
-        var pos = Position.Value;
-        Console.CursorTop = pos.Top + 1;
-        Console.CursorLeft = 0;
-        Position = null;
-        Console.ResetColor();
-    }
-
-    private static void WriteValuePadded<T>(T? value, int elementWidth)
+    public static void WriteValuePadded<T>(T? value, int elementWidth)
     {
         string strValue = (value?.ToString() ?? "").PadLeft(elementWidth);
         Console.Write(strValue);
     }
 
-    private static void DrawState(DrawPosition position, int elementWidth, ReadOnlySpan<int> array)
+    public struct ComparisonColors
+    {
+        public ConsoleColor EqualColor;
+        public ConsoleColor LessColor;
+        public ConsoleColor GreaterColor;
+        public ConsoleColor HighlightColor;
+    }
+
+    public static readonly ComparisonColors DefaultComparisonColors = new()
+    {
+        EqualColor = ConsoleColor.Yellow,
+        LessColor = ConsoleColor.Red,
+        GreaterColor = ConsoleColor.Green,
+        HighlightColor = ConsoleColor.Cyan,
+    };
+
+    public struct CachedStringsInfo
+    {
+        public string[] StringArray;
+        public int ElementWidth;
+
+        public CachedStringsInfo(string[] stringArray, int elementWidth)
+        {
+            StringArray = stringArray;
+            ElementWidth = elementWidth;
+        }
+    }
+
+    public static CachedStringsInfo CacheStrings(int[] array)
+    {
+        var elementWidth = Helper.GetNumDecimalDigits(array.Max());
+        var stringArray = array.Select(t => t.ToString().PadLeft(elementWidth)).ToArray();
+        return new CachedStringsInfo(stringArray, elementWidth);
+    }
+
+    public static void DrawArrayState(DrawHelper.DrawPosition position, int elementWidth, IStringIndexer array)
     {
         Console.ResetColor();
         Console.CursorTop = position.Top;
         Console.CursorLeft = position.Left;
+
+        // decoration param?
         Console.Write("[");
+
         for (int i = 0; i < array.Length; i++)
-        {
-            if (i != 0)
-                Console.Write(" ");
-            WriteValuePadded(array[i], elementWidth);
-        }
+            DrawArrayElement(isFirst: i == 0, array[i]);
+
         Console.Write("]");
     }
 
-    [MemberNotNull(nameof(_arrayRef))]
-    [MemberNotNull(nameof(Position))]
-    private void AssertInitialized()
+    public static void DrawArrayElement(bool isFirst, string value, string spacing = DefaultArrayElementSpacing)
     {
-        Debug.Assert(_arrayRef is not null);
+        if (!isFirst)
+            Console.Write(spacing);
+
+        Console.Write(value);
+    }
+
+    public const string DefaultArrayElementSpacing = " ";
+    // How is this not a constant? Are you actually kidding me??
+    // Why can a string be const, but not DefaultArrayElementSpacing.Length, that's just nonsense.
+    public const int DefaultArrayElementSpacingLength = 1; // DefaultArrayElementSpacing.Length;
+
+    public static int GetPosOfElement_InDecoratedArray(int left, int index, int elementWidth)
+    {
+        return left
+            // [
+            + 1
+            
+            // go to pos
+            + elementWidth * index
+            
+            // whitespace
+            + index * DefaultArrayElementSpacingLength;
+    }
+}
+
+public interface IStringIndexer
+{
+    string this[int index] { get; }
+    int Length { get; }
+}
+
+public abstract class GraphicalConsoleDisplayMixin : IDisplay<int>, IStringIndexer
+{
+    protected DrawHelper.CachedStringsInfo _cachedArrayInfo;
+    protected int[] _indexPermutation;
+
+    protected GraphicalConsoleDisplayMixin(DrawHelper.CachedStringsInfo cachedArrayInfo)
+    {
+        _cachedArrayInfo = cachedArrayInfo;
+        _indexPermutation = Enumerable.Range(0, cachedArrayInfo.StringArray.Length).ToArray();
+    }
+
+    public virtual int[] ArrayValues
+    {
+        set => _cachedArrayInfo = DrawHelper.CacheStrings(value);
+    }
+
+    public DrawHelper.DrawPosition? Position { get; set; }
+    public void SetDrawToCurrentPosition() => Position = DrawHelper.GetCurrentDrawPosition();
+
+    protected abstract int ViewportHeight { get; }
+
+    protected string GetElementString(int index)
+    {
+        return _cachedArrayInfo.StringArray[_indexPermutation[index]];
+    }
+
+    // TODO: pull out into a helper class
+    string IStringIndexer.this[int index] => GetElementString(index);
+    int IStringIndexer.Length => _indexPermutation.Length;
+
+    public virtual void CompleteDrawing()
+    {
         Debug.Assert(Position.HasValue);
+        var pos = Position.Value;
+        Console.CursorTop = pos.Top + ViewportHeight;
+        Console.CursorLeft = 0;
+        Position = null;
+        Console.ResetColor();
+
+        for (int i = 0; i < _indexPermutation.Length; i++)
+            _indexPermutation[i] = i;
+    }
+
+    [MemberNotNull(nameof(Position))]
+    protected virtual void AssertInitialized()
+    {
+        Debug.Assert(Position.HasValue);
+    }
+
+    public virtual void BeingDrawing()
+    {
+        SetDrawToCurrentPosition();
+    }
+
+    public virtual void EndDrawing()
+    {
+        CompleteDrawing();
+    }
+
+    public abstract void RecordIteration();
+    public abstract void RecordComparison(int index0, int index1, int comparisonResult);
+
+    void IDisplay<int>.BeginSwap(int index0, int index1)
+    {
+        if (index0 == index1)
+            return;
+
+        DoBeginSwap(index0, index1);
+    }
+
+    void IDisplay<int>.EndSwap(int index0, int index1)
+    {
+        if (index0 == index1)
+            return;
+
+        ref var v0 = ref _indexPermutation[index0];
+        ref var v1 = ref _indexPermutation[index1];
+        Helper.Swap(ref v0, ref v1);
+
+        DoEndSwap(index0, index1);
+    }
+
+    protected virtual void DoBeginSwap(int index0, int index1)
+    {
+    }
+
+    protected virtual void DoEndSwap(int index0, int index1)
+    {
+    }
+}
+
+public sealed class ThreadSleep_ConsoleCursor_Colorful_Display : GraphicalConsoleDisplayMixin
+{
+    public int SleepDurationMilliseconds { get; set; } = 1000;
+
+    // This one always takes a single line.
+    protected override int ViewportHeight => 1;
+
+    // This cannot be set via the ArrayValues property because it's virtual.
+    public ThreadSleep_ConsoleCursor_Colorful_Display(int[] values) : base(DrawHelper.CacheStrings(values))
+    {
     }
 
     private void DrawAndSleep(int sleepDuration)
@@ -647,11 +831,12 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         Thread.Sleep(sleepDuration);
     }
 
-    private static readonly ConsoleColor[] TwoElementHightlightColorMap = { ConsoleColor.Magenta, ConsoleColor.Cyan, };
+    private static readonly ConsoleColor[] _TwoElementHightlightColors = { ConsoleColor.Magenta, ConsoleColor.Cyan, };
+
 
     private void WriteHighlighted(int index0, int index1)
     {
-        WriteColored(index0, index1, TwoElementHightlightColorMap[0], TwoElementHightlightColorMap[1]);
+        WriteColored(index0, index1, _TwoElementHightlightColors[0], _TwoElementHightlightColors[1]);
     }
 
     private void WriteColored(int index0, int index1, ConsoleColor color0, ConsoleColor color1)
@@ -661,96 +846,304 @@ public sealed class ThreadSleep_ConsoleCursor_Display : IDisplay<int>
         var position = Position.Value;
         Console.CursorTop = position.Top;
 
-        int GetPosOfElement(int left, int index)
+        int GetPosOfElement(int index)
         {
-            return left
-                // [
-                + 1
-                
-                // go to pos
-                + _cachedElementWidth * index
-                
-                // whitespace
-                + index;
+            return DrawHelper.GetPosOfElement_InDecoratedArray(
+                position.Left, index, _cachedArrayInfo.ElementWidth);
         }
 
-        Console.CursorLeft = GetPosOfElement(position.Left, index0);
+        Console.CursorLeft = GetPosOfElement(index0);
         Console.ForegroundColor = color0;
-        WriteValuePadded(_arrayRef[index0], _cachedElementWidth);
+        Console.Write(GetElementString(index0), _cachedArrayInfo.ElementWidth);
 
-        Console.CursorLeft = GetPosOfElement(position.Left, index1);
+        Console.CursorLeft = GetPosOfElement(index1);
         Console.ForegroundColor = color1;
-        WriteValuePadded(_arrayRef[index1], _cachedElementWidth);
+        Console.Write(GetElementString(index1), _cachedArrayInfo.ElementWidth);
     }
 
     private void Redraw()
     {
         AssertInitialized();
-        DrawState(Position.Value, _cachedElementWidth, _arrayRef);
+        DrawHelper.DrawArrayState(Position.Value, _cachedArrayInfo.ElementWidth, this);
     }
 
-    public void BeginSwap(int index0, int index1)
+    protected override void DoBeginSwap(int index0, int index1)
     {
-        if (index0 == index1)
-            return;
-        
         Redraw();
         WriteHighlighted(index0, index1);
-        Thread.Sleep(1000);
+        Thread.Sleep(SleepDurationMilliseconds);
     }
 
-    public void EndSwap(int index0, int index1)
+    protected override void DoEndSwap(int index0, int index1)
     {
-        if (index0 == index1)
-            return;
-            
         Redraw();
         WriteHighlighted(index1, index0);
-        Thread.Sleep(1000);
+        Thread.Sleep(SleepDurationMilliseconds);
     }
 
-    private struct ComparisonColors
+    public override void RecordComparison(int index0, int index1, int comparisonResult)
     {
-        public ConsoleColor EqualColor;
-        public ConsoleColor LessColor;
-        public ConsoleColor GreaterColor;
-        public ConsoleColor HighlightColor;
-    }
-    private static readonly ComparisonColors ComparisonColorMap = new()
-    {
-        EqualColor = ConsoleColor.Yellow,
-        LessColor = ConsoleColor.Red,
-        GreaterColor = ConsoleColor.Green,
-        HighlightColor = ConsoleColor.Cyan,
-    };
-
-    public void RecordComparison(int index0, int index1, int comparisonResult)
-    {
+        var colors = DrawHelper.DefaultComparisonColors;
         Redraw();
-        WriteColored(index0, index1, ComparisonColorMap.HighlightColor, ComparisonColorMap.HighlightColor);
-        Thread.Sleep(1000);
+        WriteColored(index0, index1, colors.HighlightColor, colors.HighlightColor);
+        Thread.Sleep(SleepDurationMilliseconds);
 
         if (comparisonResult == 0)
-            WriteColored(index0, index1, ComparisonColorMap.EqualColor, ComparisonColorMap.EqualColor);
+            WriteColored(index0, index1, colors.EqualColor, colors.EqualColor);
         else if (comparisonResult < 0)
-            WriteColored(index0, index1, ComparisonColorMap.LessColor, ComparisonColorMap.GreaterColor);
+            WriteColored(index0, index1, colors.LessColor, colors.GreaterColor);
         else
-            WriteColored(index0, index1, ComparisonColorMap.GreaterColor, ComparisonColorMap.LessColor);
-        Thread.Sleep(1000);        
+            WriteColored(index0, index1, colors.GreaterColor, colors.LessColor);
+        Thread.Sleep(SleepDurationMilliseconds);        
     }
 
-    public void RecordIteration()
+    public override void RecordIteration()
     {
-        DrawAndSleep(1000);
+        DrawAndSleep(SleepDurationMilliseconds);
+    }
+}
+
+public sealed class ThreadSleep_ConsoleCursor_Animated_Display : GraphicalConsoleDisplayMixin
+{
+    public int SwapAnimationDurationMilliseconds { get; set; } = 1000;
+    public int ActionAnimationDurationMilliseconds { get; set; } = 1000;
+    private string _cachedClearString;
+
+    public ThreadSleep_ConsoleCursor_Animated_Display(int[] values) : base(DrawHelper.CacheStrings(values))
+    {
+        CacheClearString();
     }
 
-    void IDisplay<int>.BeingDrawing()
+    [MemberNotNull(nameof(_cachedClearString))]
+    private void CacheClearString()
     {
-        SetDrawToCurrentPosition();
+        int spacingWidth = _cachedArrayInfo.StringArray.Length - 1;
+        int decorationWidth = 2; // [ .. ]
+        int allElementsWidth = _cachedArrayInfo.ElementWidth * _cachedArrayInfo.StringArray.Length;
+        _cachedClearString = new string(' ', spacingWidth + decorationWidth + allElementsWidth);
     }
 
-    void IDisplay<int>.EndDrawing()
+    // 2 for the animated things and 1 for the main array thing.
+    protected override int ViewportHeight => 3;
+    public override int[] ArrayValues
     {
-        CompleteDrawing();
+        set
+        {
+            base.ArrayValues = value;
+            CacheClearString();
+        }
+    }
+
+    private void ClearViewport()
+    {
+        AssertInitialized();
+        DrawHelper.SetConsolePosition(Position.Value);
+
+        string clearString = _cachedClearString;
+        int height = ViewportHeight;
+
+        for (int i = 0; i < height; i++)
+            Console.WriteLine(clearString);
+    }
+    
+    private struct DrawData
+    {
+        public int Index;
+        public DrawHelper.DrawPosition Position;
+        public ConsoleColor Color;
+    }
+
+    private void Redraw(Span<DrawData> manuallyDrawnIndicesAndPositions, Span<int> sortedIgnoredIndices)
+    {
+        AssertInitialized();
+        ClearViewport();
+
+        DrawIntervalsInBetweenIgnoredIndices(sortedIgnoredIndices);
+
+        foreach (ref var ip in manuallyDrawnIndicesAndPositions)
+            DrawElement(ip);
+
+        void DrawIntervalsInBetweenIgnoredIndices(Span<int> sortedIgnoredIndices)
+        {
+            AssertInitialized();
+            
+            var center = Position.Value;
+
+            center.Top += 1;
+            DrawHelper.SetConsolePosition(center);
+            Console.ResetColor();
+
+            Console.Write("[");
+            int j = 0;
+            for (int i = 0; i < sortedIgnoredIndices.Length; i++)
+            {
+                for (; j < sortedIgnoredIndices[i]; j++)
+                    DrawHelper.DrawArrayElement(isFirst: j == 0, GetElementString(j));
+                
+                int offset = _cachedArrayInfo.ElementWidth;
+                if (j != 0)
+                    offset += DrawHelper.DefaultArrayElementSpacingLength;
+                Console.CursorLeft += offset;
+
+                j += 1;
+            }
+            for (; j < _cachedArrayInfo.StringArray.Length; j++)
+                DrawHelper.DrawArrayElement(isFirst: j == 0, GetElementString(j));
+
+            Console.Write("]");
+        }
+
+        void DrawElement(in DrawData ip)
+        {
+            var value = GetElementString(ip.Index);
+            DrawHelper.SetConsolePosition(ip.Position);
+            Console.ForegroundColor = ip.Color;
+            Console.Write(value);
+        }
+    }
+
+    private void PrepareIndicesAndPositionsForAnimation(Span<DrawData> ips, ref int index0, ref int index1)
+    {
+        NormalizeIndices(ref index0, ref index1);
+        SetIndices(ips, index0, index1);
+        SetXs(ips);
+
+        void NormalizeIndices(ref int index0, ref int index1)
+        {
+            if (index0 > index1)
+                Helper.Swap(ref index0, ref index1);
+        }
+
+        void SetIndices(Span<DrawData> ips, int index0, int index1)
+        {
+            Debug.Assert(index0 < index1);
+            Debug.Assert(ips.Length == 2);
+            ips[0].Index = index0;
+            ips[1].Index = index1;
+        }
+
+        void SetXs(Span<DrawData> ips)
+        {
+            AssertInitialized();
+            var position = Position.Value;
+
+            int GetX(int index)
+            {
+                return DrawHelper.GetPosOfElement_InDecoratedArray(position.Left, index, _cachedArrayInfo.ElementWidth);
+            }
+            foreach (ref var ip in ips)
+                ip.Position.Left = GetX(ip.Index);
+        }
+    }
+
+    private void DrawStateNormally()
+    {
+        AssertInitialized();
+        ClearViewport();
+        var center = Position.Value;
+        center.Top += 1;
+        DrawHelper.DrawArrayState(center, _cachedArrayInfo.ElementWidth, this);
+        Thread.Sleep(ActionAnimationDurationMilliseconds);
+    }
+    
+    private void DrawSwapAnimationSequence(int index0, int index1)
+    {
+        AssertInitialized();
+        var position = Position.Value;
+
+        const int numSwapElements = 2;
+        Span<DrawData> ips = stackalloc DrawData[numSwapElements];
+        PrepareIndicesAndPositionsForAnimation(ips, ref index0, ref index1);
+        ips[0].Position.Top = position.Top;
+        ips[1].Position.Top = position.Top + 2;
+        ips[0].Color = ConsoleColor.Yellow;
+        ips[1].Color = ConsoleColor.Yellow;
+
+        Span<int> ignoredIndices = stackalloc int[]{index0, index1};
+
+        // Animation loop
+        {
+            int increment = _cachedArrayInfo.ElementWidth + DrawHelper.DefaultArrayElementSpacingLength;
+            int numSteps = (index1 - index0);
+            int singleAnimationDuration = SwapAnimationDurationMilliseconds / numSteps;
+            
+            // 
+            Redraw(ips, ignoredIndices);
+            Thread.Sleep(singleAnimationDuration);
+            
+            for (int i = 0; i < numSteps; i++)
+            {
+                ips[0].Position.Left += increment;
+                ips[1].Position.Left -= increment;
+                Redraw(ips, ignoredIndices);
+                Thread.Sleep(singleAnimationDuration);
+            }
+        }
+    }
+
+    private void DrawComparisonAnimationSequence(int index0, int index1, int comparisonResult)
+    {
+        // kinda messy with the same check being done in the function
+        if (index1 < index0)
+            comparisonResult = -comparisonResult;
+
+        AssertInitialized();
+        var position = Position.Value;
+        Span<DrawData> ips = stackalloc DrawData[2];
+        PrepareIndicesAndPositionsForAnimation(ips, ref index0, ref index1);
+        ips[0].Position.Top = position.Top;
+        ips[1].Position.Top = position.Top;
+
+        Span<int> ignoredIndices = stackalloc int[]{index0, index1};
+
+        var comparisonColors = DrawHelper.DefaultComparisonColors;
+        foreach (ref var ip in ips)
+            ip.Color = comparisonColors.HighlightColor;
+
+        Redraw(ips, ignoredIndices);
+        Thread.Sleep(ActionAnimationDurationMilliseconds);
+
+        // Now the colors show which one was larger
+        if (comparisonResult < 0)
+        {
+            ips[0].Color = comparisonColors.LessColor;
+            ips[1].Color = comparisonColors.GreaterColor;
+        }
+        else if (comparisonResult > 0)
+        {
+            ips[1].Color = comparisonColors.LessColor;
+            ips[0].Color = comparisonColors.GreaterColor;
+        }
+        else
+        {
+            ips[0].Color = comparisonColors.EqualColor;
+            ips[1].Color = comparisonColors.EqualColor;
+        }
+
+        Redraw(ips, ignoredIndices);
+        Thread.Sleep(ActionAnimationDurationMilliseconds);
+
+        // And now back to normal
+        DrawStateNormally();
+    }
+
+    protected override void DoBeginSwap(int index0, int index1)
+    {
+        DrawSwapAnimationSequence(index0, index1);
+    }
+
+    protected override void DoEndSwap(int index0, int index1)
+    {
+        // Draw the array normally at the end, once the elements are above / below the new positions.
+        DrawStateNormally();
+    }
+
+    public override void RecordComparison(int index0, int index1, int comparisonResult)
+    {
+        DrawComparisonAnimationSequence(index0, index1, comparisonResult);
+    }
+
+    public override void RecordIteration()
+    {
     }
 }
