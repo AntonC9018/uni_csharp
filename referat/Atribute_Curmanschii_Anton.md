@@ -52,7 +52,7 @@ Atributele în C# pot fi folosite în următoarele cazuri de utilizare:
 
 - Adăugarea informațiilor specifice unei librării, analizate folosind reflecție runtime de către funcțiile acelei librării; folosirea atributelor în codul propriu.
 
-  De exemplu, librăria ASP.NET Core folosește foarte mult reflecția.
+  De exemplu, framework-ul ASP.NET Core folosește foarte mult reflecția.
   Librăria definește, de exemplu, atributele `[ApiController]`, `[HttpGet]`, `[HttpPost]` etc. pentru definirea endpoint-urilor; `[FromBody]`, `[FromRoute]`, `[FromQuery]` etc. pentru a specifica modul de bindare a parametrilor; `[Email]`, `[Range]`, `[Required]` etc. pentru definirea contractelor tipurilor și realizarea validării.
 
   Putem defini și atributele proprii, analizându-le în timpul rulării programului folosind reflecția runtime.
@@ -370,7 +370,7 @@ return true;
 ```
 
 Rămâne să definim metoda de obținere a mesajului de ajutor.
-Am implementat și metoda `GetFieldsWithOptions` pentru a evita repetarea codului (am substituit și codul corespunzător la invocarea acestei funcții și în funcția TryParse). 
+Am implementat și metoda `GetFieldsWithOptions` pentru a evita repetarea codului (am substituit și codul corespunzător la invocarea acestei funcții și în funcția `TryParse`). 
 
 ```csharp
 public static class ArgumentParser
@@ -460,7 +460,7 @@ public class StuffAttribute : Attribute
 
 Clasele atributelor funcționează ca orice clasă obișnuită.
 Este posibil să definească câmpuri, proprietăți de orice tip, metode, constructori cu orice parametri, de folosit moștenirea și atribute abstracte, de implementat interfețe, etc.
-Trebuie să țineți minte doar faptul că la aplicare veți putea atribui doar valorile primitive constante, tipuri, object, sau tablouri de object.
+Trebuie să țineți minte doar faptul că la aplicare veți putea atribui doar valorile primitive constante, tipuri, `object`, sau tablouri de `object`.
 Adică dacă aveți o proprietate de tip `StringBuilder`, nu veți putea a-i da valoare la aplicarea atributului.
 
 ```csharp
@@ -580,7 +580,7 @@ class A
 }
 ```
 
-La aplicare se va decide supraîncărcarea corectă a constructorului, dar putem seta și atributele sau câmpuri în scopul aplicării.
+La aplicare se va decide supraîncărcarea corectă a constructorului, dar putem seta și atributele sau câmpurile în scopul aplicării.
 
 ```csharp
 using System;
@@ -613,7 +613,7 @@ public class StuffAttribute : Attribute
 ### Reflecția pentru analiză
 
 Analiza atributelor aplicate la o entitate de obicei se face în timpul rulării programului.
-Pentru aceasta trebuie să obțină informații legate de entitate, după care se folosește metoda `GetCustomAttributes`.
+Pentru aceasta trebuie să obțină informațiile legate de entitate, după care se folosește metoda `GetCustomAttributes`.
 
 ```csharp
 // [Stuff]
@@ -669,7 +669,7 @@ foreach (var attr in typeof(A).Attributes)
 ```
 
 Se mai poate folosi `CustomAttributeData`, care dă informații necesare pentru a instanția atributul manual:
-- Ce fel de supraîncărcarea a constructorului trebuie să fie apelată;
+- Ce fel de supraîncărcare a constructorului trebuie să fie apelată;
 - Ce argumente au fost trimise în constructor;
 - Ce câmpuri sau proprietăți au fost atribuite după nume.
 
