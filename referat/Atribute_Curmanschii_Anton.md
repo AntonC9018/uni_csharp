@@ -2,7 +2,7 @@
 
 Tema: *Atribute în C#.*
 
-Student: *Curmanschii Anton, MIA2022.*
+Student: *Curmanschii Anton, MIA2201.*
 
 - [Tehnologii avansate de programare](#tehnologii-avansate-de-programare)
   - [Introducere](#introducere)
