@@ -1,3 +1,5 @@
+using System;
+
 namespace Laborator2;
 
 using System.Diagnostics;
