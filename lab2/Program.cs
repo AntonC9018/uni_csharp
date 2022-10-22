@@ -428,7 +428,7 @@ public readonly struct Slice2
         _size = size;
     }
 
-    public ref RationalNumber this[IntV2 pos]
+    public readonly ref RationalNumber this[IntV2 pos]
     {
         get
         {
@@ -438,7 +438,7 @@ public readonly struct Slice2
         }
     }
 
-    public ref RationalNumber this[int i, int j]
+    public readonly ref RationalNumber this[int i, int j]
     {
         get
         {
