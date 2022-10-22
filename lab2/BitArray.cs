@@ -1,3 +1,5 @@
+namespace Laborator2;
+
 using System.Collections;
 using System.Diagnostics;
 using System.Numerics;
@@ -28,10 +30,24 @@ public struct BitArray32
         _bits |= (1u << index);
     }
 
+    public readonly BitArray32 WithSet(int index)
+    {
+        var r = this;
+        r.Set(index);
+        return r;
+    }
+
     public void Clear(int index)
     {
         Debug.Assert(index < _length);
         _bits &= ~(1u << index);
+    }
+
+    public readonly BitArray32 WithClear(int index)
+    {
+        var r = this;
+        r.Clear(index);
+        return r;
     }
 
     public readonly SetBitIndicesIterator GetEnumerator() => BitHelper.GetSetBitIndices(_bits);
@@ -49,8 +65,10 @@ public struct BitArray32
 
     public static bool CanCreate(int length)
     {
-        return length <= sizeof(uint) * 8;
+        return length <= MaxLength;
     }
+
+    public const int MaxLength = sizeof(uint) * 8;
 }
 
 
