@@ -7,33 +7,9 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/lab2/lab2.csproj",
+                "${workspaceFolder}/lab2_b/lab2_b.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "publish",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "publish",
-                "${workspaceFolder}/lab2/lab2.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "watch",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "watch",
-                "run",
-                "--project",
-                "${workspaceFolder}/lab2/lab2.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

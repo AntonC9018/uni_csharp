@@ -64,7 +64,7 @@ public static class InputHelper
 
     public static string? ReadOption(string prompt, OptionSet options, string exitCue = "q")
     {
-        if (!options.Set.Contains(exitCue))
+        if (options.Set.Contains(exitCue))
             Debug.Fail($"The exit cue {exitCue} cannot be one of the options {options.VisualRepresentation}");
         prompt = $"{prompt} ({options.VisualRepresentation}, {exitCue} to exit): ";
         while (true)
