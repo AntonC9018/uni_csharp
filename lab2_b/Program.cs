@@ -152,7 +152,10 @@ public static class Queries
     {
         var e = query.GetEnumerator();
         if (!e.MoveNext())
+        {
             Console.WriteLine("No results.");
+            yield break;
+        }
 
         do
         {
