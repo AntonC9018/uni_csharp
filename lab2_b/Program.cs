@@ -214,7 +214,10 @@ class Program
                         var t1 = t0[isubject] = new Grade[count];
 
                         foreach (ref var grade in t1.AsSpan())
-                            grade.Value = rng.Next() % 10 + 1;
+                        {
+                            const int min = 2;
+                            grade.Value = rng.Next() % (10 - min - 1) + min;
+                        }
                     }
                 }
             }
