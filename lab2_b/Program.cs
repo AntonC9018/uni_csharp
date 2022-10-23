@@ -1,6 +1,7 @@
 ﻿namespace Laborator2b;
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -165,40 +166,68 @@ public static class Queries
     }
 }
 
+public class ArrayMap<TValue> : IContains<TValue>
+    where TValue : notnull
+{
+    public readonly TValue[] Array;
+    public readonly Dictionary<TValue, int> IndexMap;
+
+    public ArrayMap(TValue[] array, Dictionary<TValue, int> indexMap)
+    {
+        Debug.Assert(array.Length == indexMap.Count);
+        Array = array;
+        IndexMap = indexMap;
+    }
+
+    bool IContains<TValue>.Contains(TValue item) => IndexMap.ContainsKey(item);
+    public IEnumerator<TValue> GetEnumerator() => Array.AsEnumerable().GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
 
 class Program
 {
     static void Main()
     {
-        static string[]? ReadStringArray(string countMessage)
+        static ArrayMap<string>? ReadStringArray(string countMessage)
         {
             int? count = InputHelper.GetPositiveNumber(countMessage);
             if (count is null)
                 return null;
             var arr = new string[count.Value];
+            var set = new Dictionary<string, int>();
             foreach (var i in Range(0, arr.Length))
             {
-                Console.Write($"arr[{i}] = ");
-                string? input = Console.ReadLine();
-                if (input is null || input == "q")
-                    return null;
-                arr[i] = input;
+                while (true)
+                {
+                    Console.Write($"arr[{i}] = ");
+                    string? input = Console.ReadLine();
+                    if (input is null || input == "q")
+                        return null;
+                    if (!set.TryAdd(input, i))
+                    {
+                        Console.WriteLine($"Duplicate input {input} is not allowed.");
+                        continue;
+                    }
+                    arr[i] = input;
+                    break;
+                }
             }
-            return arr;
+            return new(arr, set);
         }
 
         StudentsGroup g;
         {
-            string[] students;
+            ArrayMap<string> students;
             {
-                string[]? input = ReadStringArray("Enter the number of students: ");
+                var input = ReadStringArray("Enter the number of students: ");
                 if (input is null)
                     return;
                 students = input;
             }
-            string[] subjects;
+            ArrayMap<string> subjects;
             {
-                string[]? input = ReadStringArray("Enter the number of subjects: ");
+                var input = ReadStringArray("Enter the number of subjects: ");
                 if (input is null)
                     return;
                 subjects = input;
@@ -206,12 +235,12 @@ class Program
             Grade[][][] grades_BySubject_ByStudent;
             {
                 var rng = new Random(69_69);
-                grades_BySubject_ByStudent = new Grade[students.Length][][];
-                foreach (var istudent in Range(0, students.Length))
+                grades_BySubject_ByStudent = new Grade[students.Array.Length][][];
+                foreach (var istudent in Range(0, students.Array.Length))
                 {
-                    var t0 = grades_BySubject_ByStudent[istudent] = new Grade[subjects.Length][];
+                    var t0 = grades_BySubject_ByStudent[istudent] = new Grade[subjects.Array.Length][];
 
-                    foreach (var isubject in Range(0, subjects.Length))
+                    foreach (var isubject in Range(0, subjects.Array.Length))
                     {
                         int count = rng.Next() % 20;
                         var t1 = t0[isubject] = new Grade[count];
@@ -224,10 +253,10 @@ class Program
                     }
                 }
             }
-            g = new StudentsGroup(subjects: subjects, students: students, grades_BySubject_ByStudent);
+            g = new StudentsGroup(subjects: subjects.Array, students: students.Array, grades_BySubject_ByStudent);
 
             var queryOptionSet = new InputHelper.OptionSet(
-                new HashSet<string>
+                new HashSetWrapper<string>
                 {
                     "average_grade", // GetAverageGrade_OfStudent_ForSubject
                     "max_average_grade", // GetMaxAverageGrade_OfStudent_AcrossSubjects
@@ -245,7 +274,7 @@ class Program
                 string? studentName = InputHelper.ReadOption("Enter student name", studentOptionSet);
                 if (studentName is null)
                     return null;
-                int studentId = g.GetStudentId(studentName);
+                int studentId = students.IndexMap[studentName];
                 return studentId;
             }
 
@@ -254,7 +283,7 @@ class Program
                 string? subject = InputHelper.ReadOption("Enter subject name", subjectOptionSet);
                 if (subject is null)
                     return null;
-                int subjectId = g.GetSubjectId(subject);
+                int subjectId = subjects.IndexMap[subject];
                 return subjectId;
             }
 

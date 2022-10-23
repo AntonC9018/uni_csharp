@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace Shared;
 
@@ -47,17 +48,17 @@ public static class InputHelper
 
     public readonly struct OptionSet
     {
-        public readonly IReadOnlySet<string> Set;
+        public readonly IContains<string> Set;
         public readonly string VisualRepresentation;
 
-        public OptionSet(IReadOnlySet<string> options)
+        public OptionSet(IContains<string> options)
         {
             Set = options;
             VisualRepresentation = string.Join(" / ", options);
         }
 
         public OptionSet(params string[] options)
-            : this(new HashSet<string>(options))
+            : this(new HashSetWrapper<string>(options))
         {
         }
     }
@@ -180,6 +181,42 @@ public static class InputHelper
     {
         string FormatError(string rawValue, T? parsedValue);
         bool Check(T parsedValue);
+    }
+}
+
+public interface IContains<TValue> : IEnumerable<TValue> 
+{
+    bool Contains(TValue item);
+}
+
+public class HashSetWrapper<TValue> : HashSet<TValue>, IContains<TValue>
+{
+    public HashSetWrapper()
+    {
+    }
+
+    public HashSetWrapper(IEnumerable<TValue> collection) : base(collection)
+    {
+    }
+
+    public HashSetWrapper(IEqualityComparer<TValue>? comparer) : base(comparer)
+    {
+    }
+
+    public HashSetWrapper(int capacity) : base(capacity)
+    {
+    }
+
+    public HashSetWrapper(IEnumerable<TValue> collection, IEqualityComparer<TValue>? comparer) : base(collection, comparer)
+    {
+    }
+
+    public HashSetWrapper(int capacity, IEqualityComparer<TValue>? comparer) : base(capacity, comparer)
+    {
+    }
+
+    protected HashSetWrapper(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
     }
 }
 
