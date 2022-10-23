@@ -26,16 +26,6 @@ public class StudentsGroup
 
 public static class Queries
 {
-    public static int GetStudentId(this StudentsGroup g, string name)
-    {
-        return Array.IndexOf(g.Students, name);
-    }
-    
-    public static int GetSubjectId(this StudentsGroup g, string name)
-    {
-        return Array.IndexOf(g.Subjects, name);
-    }
-
     public static double GetAverageGrade_OfStudent_ForSubject(this StudentsGroup g, int studentId, int subjectId)
     {
         Debug.Assert(g.Students.Length > studentId && studentId >= 0);
