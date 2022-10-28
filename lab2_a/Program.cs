@@ -1,7 +1,7 @@
 ﻿namespace Laborator2;
 
 using System.Diagnostics;
-using static IterationHelper;
+using static Shared.IterationHelper;
 using Shared;
 using System;
 using System.Collections.Generic;
@@ -143,13 +143,13 @@ public static class Helper
 
     private struct ColsRowsMasks
     {
-        public BitArray32 XIndices;
+        public int XLargest;
         public BitArray32 YIndices;
 
         public ColsRowsMasks(in Slice2 matrix)
         {
-            XIndices = BitArray32.AllSet(length: matrix.Width);
-            YIndices = XIndices;
+            XLargest = matrix.Width;
+            YIndices = BitArray32.AllSet(length: matrix.Height);
         }
     }
 
@@ -164,21 +164,18 @@ public static class Helper
 
     private static RationalNumber _GetDeterminant(in Slice2 matrix, ColsRowsMasks masks)
     {
-        var xs = masks.XIndices.SetBitIndices;
         var ys = masks.YIndices.SetBitIndices;
+        var x0 = masks.XLargest - 1;
 
-        Debug.Assert(xs.MoveNext());
         Debug.Assert(ys.MoveNext());
 
-        int x0 = xs.Current;
-        if (!xs.MoveNext())
+        if (x0 == 0)
             return matrix[x0, ys.Current];
 
         var result = RationalNumber.Zero;
         int sign = 1;
         {
-            masks.XIndices.Clear(x0);
-
+            masks.XLargest--;
             foreach (int y in masks.YIndices.SetBitIndices)
             {
                 var ybefore = masks.YIndices;
@@ -258,9 +255,9 @@ public static class Helper
             foreach (var deti in outResult)
             {
                 if (deti != 0)
-                    return CramerSolutionKind.InfinitelyManySolutions;
+                    return CramerSolutionKind.NoSolution;
             }
-            return CramerSolutionKind.NoSolution;
+            return CramerSolutionKind.InfinitelyManySolutions;
         }
 
         foreach (ref var deti in outResult)
