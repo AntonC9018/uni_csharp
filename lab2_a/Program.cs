@@ -148,7 +148,7 @@ public static class Helper
 
         public ColsRowsMasks(in Slice2 matrix)
         {
-            XLargest = matrix.Width;
+            XLargest = matrix.Width - 1;
             YIndices = BitArray32.AllSet(length: matrix.Height);
         }
     }
@@ -165,7 +165,7 @@ public static class Helper
     private static RationalNumber _GetDeterminant(in Slice2 matrix, ColsRowsMasks masks)
     {
         var ys = masks.YIndices.SetBitIndices;
-        var x0 = masks.XLargest - 1;
+        var x0 = masks.XLargest;
 
         Debug.Assert(ys.MoveNext());
 
