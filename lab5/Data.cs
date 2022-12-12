@@ -12,7 +12,8 @@ public class Person
     public PersonLocation Location { get; set; } = new();
     public PersonStudy Study { get; set; } = new();
 
-    public static readonly PropertyInfo[] Categories = typeof(Person).GetProperties();
+    public static readonly PropertyInfo[] Categories = typeof(Person)
+        .GetProperties(BindingFlags.Instance | BindingFlags.Public);
     public static readonly PropertyInfo[][] Properties = Categories
         .Select(x => x.PropertyType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         .ToArray();
