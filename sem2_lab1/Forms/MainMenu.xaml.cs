@@ -170,7 +170,7 @@ public class ItemsData<T> : IItems
     {
         var context = new SortingContext<T>
         {
-            SortDisplay = sortDisplay,
+            Display = sortDisplay,
             Items = Items.AsMemory(),
             Comparer = Comparer,
         };
@@ -451,7 +451,7 @@ public class MainMenuViewModel : ObservableObject
     }
 
     public bool StatusBarVisibility => true;
-    
+
     public string AlgorithmName => _model.SortingAlgorithmKind?.ToString() ?? "None";
     public IEnumerable<SortingAlgorithmKind> AlgorithmKinds => _service.SortingAlgorithmFactory.GetKeys();
     public bool IsAlgorithmSelected => _model.SortingAlgorithmKind is not null;

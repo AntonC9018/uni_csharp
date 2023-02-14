@@ -3,16 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Toolkit.Mvvm.ComponentModel;
 
 namespace Laborator1;
 
 
 public struct SortingContext<T>
 {
-    public ISortDisplay SortDisplay;
+    public ISortDisplay Display;
     public Memory<T> Items;
     public IComparer<T> Comparer;
 }
@@ -73,25 +71,25 @@ public class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKind, ISor
 
 public class QuickSortAlgorithm : ISortingAlgorithm
 {
-    public Task Sort<T>(SortingContext<T> context)
+    public async Task Sort<T>(SortingContext<T> context)
     {
-        throw new NotImplementedException();
+        await SortingImplementations.QuickSort(context);
     }
 }
 
 public class HeapSortAlgorithm : ISortingAlgorithm
 {
-    public Task Sort<T>(SortingContext<T> context)
+    public async Task Sort<T>(SortingContext<T> context)
     {
-        throw new NotImplementedException();
+        await SortingImplementations.HeapSort(context);
     }
 }
 
 public class SelectionSortAlgorithm : ISortingAlgorithm
 {
-    public Task Sort<T>(SortingContext<T> context)
+    public async Task Sort<T>(SortingContext<T> context)
     {
-        throw new NotImplementedException();
+        await SortingImplementations.SelectionSort(context);
     }
 }
 

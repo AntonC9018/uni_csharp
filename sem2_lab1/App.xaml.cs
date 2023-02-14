@@ -19,17 +19,18 @@ public partial class App : Application
 
         var services = new ServiceCollection();
         services.AddSingleton<IKeyedProvider<SortingAlgorithmKind, ISortingAlgorithm>>(SortingAlgorithmFactory.Instance);
-        services.AddSingleton<IKeyedProvider<SelectionFilterKind, ISelectionFilter>, SelectionFilterFactory>();
-        services.AddSingleton<ISortDisplay, SortDisplay>();
-        services.AddSingleton(new MainMenuModel(default));
-        services.AddSingleton<MainMenuService>();
+        services.AddScoped<IKeyedProvider<SelectionFilterKind, ISelectionFilter>, SelectionFilterFactory>();
+        services.AddScoped<ISortDisplay, SortDisplay>();
+        services.AddScoped(sp => new MainMenuModel(default));
+        services.AddScoped<MainMenuService>();
 
-        services.AddSingleton<MainMenuViewModel>();
-        services.AddTransient<MainMenu>();
-        
+        services.AddScoped<MainMenuViewModel>();
+        services.AddScoped<MainMenu>();
+
         var serviceProvider = services.BuildServiceProvider();
 
-        var mainMenu = serviceProvider.GetRequiredService<MainMenu>();
+        var scope = serviceProvider.CreateScope();
+        var mainMenu = scope.ServiceProvider.GetRequiredService<MainMenu>();
         mainMenu.Show();
     }
 }
