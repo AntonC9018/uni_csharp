@@ -1,0 +1,72 @@
+﻿<Window x:Class="Laborator1.MainMenu"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MainMenu"
+        xmlns:toolkit="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:icons="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        xmlns:avalonDock="https://github.com/Dirkster99/AvalonDock"
+        mc:Ignorable="d"
+        Title="Main Menu">
+    <DockPanel
+        LastChildFill="false">
+        <Menu
+            DockPanel.Dock="Top"
+            Name="Menu"
+            VerticalAlignment="Top"
+            >
+            <!-- <MenuItem
+                Header="Select _Algorithm"
+                Click="SelectAlgorithm"
+                /> -->
+            <MenuItem
+                Header="_Randomize"
+                Click="Randomize"
+                IsEnabled="{Binding IsAlgorithmSelected}"
+                />
+        </Menu>
+        <StackPanel
+            Orientation="Vertical"
+            DockPanel.Dock="Top"
+            >
+            <ComboBox
+                Name="AlgorithmDropdown"
+                ItemsSource="{Binding AlgorithmKinds}"
+                SelectedItem="{Binding AlgorithmKind}"
+                />
+            <ComboBox
+                Name="FilterDropdown"
+                ItemsSource="{Binding SelectionFilterKinds}"
+                SelectedItem="{Binding SelectionFilterKind}"
+                IsEnabled="{Binding IsAlgorithmSelected}"
+                />
+        </StackPanel>
+        <StatusBar
+            DockPanel.Dock="Bottom"
+            Height="30"
+            Visibility="{Binding StatusBarVisibility}"
+            >
+            <StatusBar.Resources>
+                <Style x:Key="MenuButton" TargetType="Button">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Width" Value="Auto" />
+                    <Setter Property="Foreground" Value="Black" />
+                    <Setter Property="BorderThickness" Value="0" />
+                </Style>
+            </StatusBar.Resources>
+            <StatusBarItem>
+                <Label
+                    Style="{StaticResource MenuButton}"
+                    Content="{Binding AlgorithmName}"
+                    ToolTip="Currently selected algorithm"
+                    />
+                <Label
+                    Style="{StaticResource MenuButton}"
+                    Content="{Binding FilterName}"
+                    ToolTip="Currently selected filter"
+                    />
+            </StatusBarItem>
+        </StatusBar>
+    </DockPanel>
+</Window>
