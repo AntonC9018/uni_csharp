@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Data;
+using lab1.Forms;
 
 namespace Laborator1;
 
@@ -11,7 +13,7 @@ namespace Laborator1;
 public struct SortingContext<T>
 {
     public ISortDisplay Display;
-    public Memory<T> Items;
+    public IList<T> Items;
     public IComparer<T> Comparer;
 }
 
@@ -31,7 +33,7 @@ public interface ISortDisplay
 
 public interface ISelectionFilter
 {
-    void EnableUI(Panel viewport);
+    void EnableUi(Panel viewport);
     IEnumerable<int> GetEnabledIndices();
 }
 
@@ -62,7 +64,7 @@ public class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKind, ISor
         _algorithms[(int) SortingAlgorithmKind.Quick] = new QuickSortAlgorithm();
         _algorithms[(int) SortingAlgorithmKind.Heap] = new HeapSortAlgorithm();
         _algorithms[(int) SortingAlgorithmKind.Selection] = new SelectionSortAlgorithm();
-        Debug.Assert(_algorithms.All(x => x != null));
+        Debug.Assert(_algorithms.All(x => x is not null));
     }
 
     public IEnumerable<SortingAlgorithmKind> GetKeys() => _keys;
@@ -102,9 +104,12 @@ public enum SelectionFilterKind
 public class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelectionFilter>
 {
     private readonly SelectionFilterKind[] _keys;
+    private readonly IProvider<RangeSelectionFilterModel> _rangeModel;
     
-    public SelectionFilterFactory()
+    public SelectionFilterFactory(
+        IProvider<RangeSelectionFilterModel> rangeModel)
     {
+        _rangeModel = rangeModel;
         _keys = (SelectionFilterKind[]) Enum.GetValues(typeof(SelectionFilterKind));
     }
 
@@ -114,7 +119,7 @@ public class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelec
         switch (key)
         {
             case SelectionFilterKind.Range:
-                return new RangeSelectionFilter();
+                return new RangeSelectionFilter(_rangeModel.GetRequired());
             case SelectionFilterKind.Arbitrary:
                 return new ArbitrarySelectionFilter();
             default:
@@ -125,20 +130,30 @@ public class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelec
 
 public class RangeSelectionFilter : ISelectionFilter
 {
-    public void EnableUI(Panel viewport)
+    private RangeSelectionFilterModel _model;
+
+    public RangeSelectionFilter(RangeSelectionFilterModel model)
     {
-        throw new NotImplementedException();
+        _model = model;
+    }
+    
+    public void EnableUi(Panel viewport)
+    {
+        var vm = new RangeSelectionFilterViewModel(_model);
+        var view = new RangeSelectionFilterUserControl(vm);
+        viewport.Children.Add(view);
     }
 
     public IEnumerable<int> GetEnabledIndices()
     {
-        throw new NotImplementedException();
+        for (int i = _model.From; i <= _model.To; i++)
+            yield return i;
     }
 }
 
 public class ArbitrarySelectionFilter : ISelectionFilter
 {
-    public void EnableUI(Panel viewport)
+    public void EnableUi(Panel viewport)
     {
         throw new NotImplementedException();
     }

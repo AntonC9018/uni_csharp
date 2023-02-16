@@ -1,0 +1,27 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lab1", "sem2_lab1\lab1.csproj", "{87DBB106-4DD6-4574-8609-DB2A15139E84}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "shared", "shared\shared.csproj", "{132F5A7C-DD93-449D-8B3C-FF5713AF1909}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87DBB106-4DD6-4574-8609-DB2A15139E84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87DBB106-4DD6-4574-8609-DB2A15139E84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87DBB106-4DD6-4574-8609-DB2A15139E84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87DBB106-4DD6-4574-8609-DB2A15139E84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{132F5A7C-DD93-449D-8B3C-FF5713AF1909}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{132F5A7C-DD93-449D-8B3C-FF5713AF1909}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{132F5A7C-DD93-449D-8B3C-FF5713AF1909}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{132F5A7C-DD93-449D-8B3C-FF5713AF1909}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ABB1A58F-7867-4655-ABBE-1BD11D7A48FC}
+	EndGlobalSection
+EndGlobal

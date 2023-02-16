@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shared;
 
 namespace Laborator1;
 
@@ -11,10 +8,10 @@ public static class SortingImplementations
     {
         public SortingContext<T> Context;
 
-        public Span<T> WholeSpan => Context.Items.Span;
+        public ListSegment<T> WholeSpan => new ListSegment<T>(Context.Items);
         public int StartIndex;
         public int SpanLength;
-        public Span<T> Span => WholeSpan.Slice(StartIndex, SpanLength);
+        public ListSegment<T> Span => WholeSpan.Slice(StartIndex, SpanLength);
 
         public _InternalSortContext(SortingContext<T> context)
         {
@@ -41,7 +38,7 @@ public static class SortingImplementations
         public async Task Swap(int index0, int index1)
         {
             await Context.Display.BeginSwap(index0, index1);
-            Helper.Swap(ref WholeSpan[index0], ref WholeSpan[index1]);
+            WholeSpan.Swap(index0, index1);
             await Context.Display.EndSwap(index0, index1);
         }
 

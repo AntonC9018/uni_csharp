@@ -1,233 +1,112 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media.Media3D;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 
 namespace Laborator1;
 
 public struct MainMenuModelData
 {
-    public ISortingAlgorithm? SortingAlgorithm;
+    // Sorting algorithms are generic.
+    public IObservableRepo<ISortingAlgorithm>? SortingAlgorithmProvider;
     public SortingAlgorithmKind? SortingAlgorithmKind; 
-    public ISortDisplay? SortDisplay;
-    public ISelectionFilter? SelectionFilter;
+    
+    public IObservableRepo<ISortDisplay>? SortDisplayProvider;
+    
+    // Selection filters work with indices.
+    public IObservableRepo<ISelectionFilter>? SelectionFilterProvider;
     public SelectionFilterKind? SelectionFilterKind;
-    public IItems? Items;
+    
+    public IObservableRepo<IItems>? ItemsObservableValue;
+    public ItemKind? ItemKind;
+    
+    // These play the role of delegates that have captured Items
+    // These allow us to be able to do operations on Items without knowing the generic type of the items.
+    // This helps us avoid casts and not have to pass around Items.
     public IItemRandomizer? ItemRandomizer;
+    public ISortingService? SortingService;
+    public IShuffle? Shuffle;
+    
     public IDirectionalComparer? DirectionalComparerDecorator;
     public SortDirection SortDirection;
-}
-
-public enum SortDirection
-{
-    Ascending,
-    Descending,
-}
-
-public interface IDirectionalComparer
-{
-    SortDirection Direction { get; set; }
-}
-
-public class DirectionalComparerDecorator<T> : IComparer<T>, IDirectionalComparer
-{
-    public DirectionalComparerDecorator(IComparer<T> comparer)
-    {
-        Comparer = comparer;
-    }
-
-    public IComparer<T> Comparer { get; set; }
-    public SortDirection Direction { get; set; }
-
-    public int Compare(T? x, T? y)
-    {
-        var result = Comparer.Compare(x, y);
-        return Direction == SortDirection.Ascending ? result : -result;
-    }
-}
-
-public interface IItems
-{
-    void InvokeSort(ISortingAlgorithm algorithm, ISortDisplay sortDisplay);
-    void ResizeArray(int newSize);
-    System.Type ElementType { get; }
-    IList List { get; }
-}
-
-public interface IItemRandomizer
-{
-    void Randomize();
-}
-
-public abstract class ItemsRandomizerBase<T> : IItemRandomizer
-{
-    protected readonly ItemsData<T> _items;
-
-    protected ItemsRandomizerBase(ItemsData<T> items)
-    {
-        _items = items;
-    }
-
-    public virtual void Randomize()
-    {
-        var items = _items.Items;
-        for (var i = 0; i < items.Length; i++)
-            RandomizeItem(ref items[i], i);
-    }
-
-    protected abstract void RandomizeItem(ref T currentItem, int index);
-}
-
-public class IntItemsRandomizer : ItemsRandomizerBase<int>
-{
-    private readonly Random _random = new();
-
-    public IntItemsRandomizer(ItemsData<int> items) : base(items)
-    {
-    }
     
-    protected override void RandomizeItem(ref int currentItem, int index)
-    {
-        currentItem = _random.Next();
-    }
-}
+    public Task? SortingTask;
 
-public class StringItemsRandomizer : ItemsRandomizerBase<string>
-{
-    private static readonly string[] _Strings = new[]
-    {
-        "big",
-        "alpha",
-        "beta",
-        "dinosaur",
-        "elephant",
-        "fox",
-        "giraffe",
-        "horse",
-        "dog",
-        "cat",
-        "house",
-        "car",
-        "plane",
-        "train",
-        "boat",
-        "ship",
-        "truck",
-        "ticket",
-        "Earth",
-        "Mars",
-        "Saturn",
-        "Jupiter",
-        "Uranus",
-        "Neptune",
-        "bitcoin",
-        "ethereum",
-        "youtube",
-        "facebook",
-        "instagram",
-        "twitter",
-        "tiktok",
-    };
-    private readonly Random _random = new();
-
-    public StringItemsRandomizer(ItemsData<string> items) : base(items)
-    {
-    }
-
-    protected override void RandomizeItem(ref string currentItem, int index)
-    {
-        currentItem = _Strings[_random.NextInt64(0, _Strings.LongLength)].ToString();
-    }
-}
-
-public class FloatItemsRandomizer : ItemsRandomizerBase<float>
-{
-    private readonly Random _random = new();
-
-    public FloatItemsRandomizer(ItemsData<float> items) : base(items)
-    {
-    }
-
-    protected override void RandomizeItem(ref float currentItem, int index)
-    {
-        currentItem = (float) _random.NextDouble();
-    }
-}
-
-public class ItemsData<T> : IItems
-{
-    public T[] Items { get; set; }
-    public IComparer<T> Comparer { get; set; }
-
-    public ItemsData(T[] items, IComparer<T> comparer)
-    {
-        Items = items;
-        Comparer = comparer;
-    }
-
-    public void InvokeSort(ISortingAlgorithm algorithm, ISortDisplay sortDisplay)
-    {
-        var context = new SortingContext<T>
-        {
-            Display = sortDisplay,
-            Items = Items.AsMemory(),
-            Comparer = Comparer,
-        };
-    }
-
-    public void ResizeArray(int newSize)
-    {
-        var it = Items;
-        Array.Resize(ref it, newSize);
-        Items = it;
-    }
-
-    IList IItems.List => Items;
-    System.Type IItems.ElementType => typeof(T);
-}
-
-public static class InvokeSortHelper
-{
-    public static void InvokeSort<T>(this ISortingAlgorithm algorithm, System.Type t, SortingContext<T> context)
-    {
-        algorithm.Sort(context);
-    }
+    public IObservableValue<int>? ItemCountObservableValue;
 }
 
 public class MainMenuModel : ObservableObject
 {
     private MainMenuModelData _data;
 
-    public MainMenuModel(MainMenuModelData data)
+    public MainMenuModel(
+        IObservableRepo<ISortingAlgorithm> sortingAlgorithmProvider,
+        IObservableRepo<ISortDisplay> sortDisplayProvider,
+        IObservableRepo<ISelectionFilter> selectionFilterProvider,
+        IObservableRepo<IItems> itemsObservableValue,
+        IObservableValue<int> itemCountObservableValue)
     {
-        _data = data;
+        _data = new()
+        {
+            SortingAlgorithmProvider = sortingAlgorithmProvider,
+            SortDisplayProvider = sortDisplayProvider,
+            SelectionFilterProvider = selectionFilterProvider,
+            ItemsObservableValue = itemsObservableValue,
+            ItemCountObservableValue = itemCountObservableValue,
+        };
     }
+
+    private IObservableRepo<ISortingAlgorithm> SortingAlgorithmObservableRepo => _data.SortingAlgorithmProvider!;
+    private IObservableRepo<ISelectionFilter> SelectionFilterObservableRepo => _data.SelectionFilterProvider!;
+    private IObservableRepo<ISortDisplay> SortDisplayObservableRepo => _data.SortDisplayProvider!;
+    
+    public IObservableValue<ISortingAlgorithm> SortingAlgorithmProvider => _data.SortingAlgorithmProvider!;
+    public IObservableValue<ISelectionFilter> SelectionFilterProvider => _data.SelectionFilterProvider!;
+    public IObservableValue<ISortDisplay> SortDisplayProvider => _data.SortDisplayProvider!;
+
     
     public ISortingAlgorithm? SortingAlgorithm
     {
-        get => _data.SortingAlgorithm;
+        get => SortingAlgorithmProvider.Get();
         // set => SetProperty(ref _data.SortingAlgorithm, value);
     }
 
     public ISelectionFilter? SelectionFilter
     {
-        get => _data.SelectionFilter;
+        get => SelectionFilterProvider.Get();
         // set => SetProperty(ref _data.SelectionFilter, value);
     }
 
     public void SetSortingAlgorithm((SortingAlgorithmKind kind, ISortingAlgorithm algorithm)? t)
     {
-        _data.SortingAlgorithmKind = t?.kind ?? null;
-        _data.SortingAlgorithm = t?.algorithm ?? null;
+        if (t is not null)
+        {
+            var v = t.Value;
+            _data.SortingAlgorithmKind = v.kind;
+            SortingAlgorithmObservableRepo.Set(v.algorithm);
+        }
+        else
+        {
+            _data.SortingAlgorithmKind = null;
+            SortingAlgorithmObservableRepo.Set(null);
+        }
         OnPropertyChanged(nameof(SortingAlgorithmKind));
         OnPropertyChanged(nameof(SortingAlgorithm));
     }
 
     public ISortDisplay? SortDisplay
     {
-        get => _data.SortDisplay;
-        set => SetProperty(ref _data.SortDisplay, value);
+        get => SortDisplayProvider.Get();
+        set
+        {
+            if (SortDisplayProvider.Get() == value)
+                return;
+            SortDisplayObservableRepo.Set(value);
+            OnPropertyChanged(nameof(SortDisplay));
+        }
     }
 
     public SortingAlgorithmKind? SortingAlgorithmKind
@@ -245,14 +124,14 @@ public class MainMenuModel : ObservableObject
     public void SetSelectionFilter((SelectionFilterKind kind, ISelectionFilter filter)? t)
     {
         _data.SelectionFilterKind = t?.kind ?? null;
-        _data.SelectionFilter = t?.filter ?? null;
+        SelectionFilterObservableRepo.Set(t?.filter ?? null);
         OnPropertyChanged(nameof(SelectionFilterKind));
         OnPropertyChanged(nameof(SelectionFilter));
     }
 
     public IItems? Items
     {
-        get => _data.Items;
+        get => _data.ItemsObservableValue!.Get();
         // set => SetProperty(ref _data.Items, value);
     }
 
@@ -262,13 +141,27 @@ public class MainMenuModel : ObservableObject
         // set => SetProperty(ref _data.Randomizer, value);
     }
     
-    public void SetItems((IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer)? t)
+    public void SetItems((IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer, IShuffle shuffle, ISortingService sortingService)? t)
     {
-        _data.Items = t?.items ?? null;
-        _data.ItemRandomizer = t?.randomizer ?? null;
-        _data.DirectionalComparerDecorator = t?.comparer ?? null;
         if (t.HasValue)
-            t.Value.comparer.Direction = _data.SortDirection;
+        {
+            var v = t.Value;
+            _data.ItemsObservableValue!.Set(v.items);
+            _data.ItemRandomizer = v.randomizer;
+            _data.DirectionalComparerDecorator = v.comparer;
+            _data.SortingService = v.sortingService;
+            _data.Shuffle = v.shuffle;
+
+            v.comparer.Direction = _data.SortDirection;
+        }
+        else
+        {
+            _data.ItemsObservableValue!.Set(null);
+            _data.ItemRandomizer = null;
+            _data.DirectionalComparerDecorator = null;
+            _data.SortingService = null;
+            _data.Shuffle = null;
+        }
 
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(Randomizer));
@@ -284,6 +177,40 @@ public class MainMenuModel : ObservableObject
                 _data.DirectionalComparerDecorator.Direction = value;
         }
     }
+
+    public Task? SortingTask
+    {
+        get => _data.SortingTask;
+        set => SetProperty(ref _data.SortingTask, value);
+    }
+
+    public ISortingService? SortingService
+    {
+        get => _data.SortingService;
+    }
+
+    public bool IsSorting
+    {
+        get => _data.SortingTask is null ? false : !_data.SortingTask.IsCompleted;
+    }
+
+    public void OnSortingStateChanged()
+    {
+        OnPropertyChanged(nameof(IsSorting));
+    }
+
+    public ItemKind? ItemKind
+    {
+        get => _data.ItemKind;
+        set => SetProperty(ref _data.ItemKind, value);
+    }
+
+    public IShuffle? Shuffle
+    {
+        get => _data.Shuffle;
+    }
+    
+    public IObservableValue<int> ItemCountObservableValue => _data.ItemCountObservableValue!;
 }
 
 public class MainMenuService
@@ -349,54 +276,55 @@ public class MainMenuService
         Model.Randomizer?.Randomize();
     }
 
-    public void SelectItemType(ItemType? itemType)
+    public void SelectItemKind(ItemKind? itemType)
     {
         if (itemType is null)
             ResetItemType();
         else
-            SelectItemType(itemType.Value);
+            SelectItemKind(itemType.Value);
     }
 
-    public void SelectItemType(ItemType itemType)
+    public void SelectItemKind(ItemKind itemKind)
     {
         var currentType = Model.Items?.ElementType;
         const int defaultItemCount = 10;
         var itemCount = Model.Items?.List.Count ?? defaultItemCount;
 
-        switch (itemType)
+        void SetItems<T>(Func<ItemsData<T>, IItemRandomizer<T>> createRandomizer)
         {
-            case ItemType.Int:
+            var comparer = new DirectionalComparerDecorator<T>(Comparer<T>.Default);
+            var items = new ItemsData<T>(new T[itemCount], comparer);
+            var randomizer = createRandomizer(items);
+            var shuffle = new Shuffler<T>(items);
+            var service = new SortingService<T>(items, Model.SortingAlgorithmProvider, Model.SortDisplayProvider, Model.SelectionFilterProvider, comparer);
+            Model.SetItems((items, randomizer, comparer, shuffle, service));
+        }
+
+        switch (itemKind)
+        {
+            case ItemKind.Int:
             {
                 if (currentType == typeof(int))
                     return;
-                var comparer = new DirectionalComparerDecorator<int>(Comparer<int>.Default);
-                var items = new ItemsData<int>(new int[itemCount], comparer);
-                var randomizer = new IntItemsRandomizer(items);
-                Model.SetItems((items, randomizer, comparer));
+                SetItems<int>(items => new IntItemsRandomizer(items));
                 break;
             }
-            case ItemType.String:
+            case ItemKind.String:
             {
                 if (currentType == typeof(string))
                     return;
-                var comparer = new DirectionalComparerDecorator<string>(Comparer<string>.Default);
-                var items = new ItemsData<string>(new string[itemCount], comparer);
-                var randomizer = new StringItemsRandomizer(items);
-                Model.SetItems((items, randomizer, comparer));
+                SetItems<string>(items => new StringItemsRandomizer(items));
                 break;
             }
-            case ItemType.Float:
+            case ItemKind.Float:
             {
                 if (currentType == typeof(float))
                     return;
-                var comparer = new DirectionalComparerDecorator<float>(Comparer<float>.Default);
-                var items = new ItemsData<float>(new float[itemCount], comparer);
-                var randomizer = new FloatItemsRandomizer(items);
-                Model.SetItems((items, randomizer, comparer));
+                SetItems<float>(items => new FloatItemsRandomizer(items));
                 break;
             }
             default:
-                throw new ArgumentOutOfRangeException(nameof(itemType), itemType, null);
+                throw new ArgumentOutOfRangeException(nameof(itemKind), itemKind, null);
         }
     }
 
@@ -404,9 +332,46 @@ public class MainMenuService
     {
         Model.SetItems(null);
     }
+
+    public bool IsSortingInProgress => Model.SortingTask is not null && !Model.SortingTask.IsCompleted;
+    public bool IsSortingNotInProgress => Model.SortingTask is null || Model.SortingTask.IsCompleted;
+
+    public async Task StartSorting()
+    {
+        Debug.Assert(IsSortingNotInProgress);
+
+        var service = Model.SortingService;
+        Debug.Assert(service is not null);
+
+        var task = service.StartSorting();
+        Model.SortingTask = task;
+        Model.OnSortingStateChanged();
+
+        try
+        {
+            await task;
+        }
+        finally
+        {
+            Model.OnSortingStateChanged();
+        }
+    }
+
+    public void Randomize()
+    {
+        Debug.Assert(Model.Randomizer is not null);
+        Model.Randomizer.Randomize();
+    }
+
+    public void Shuffle()
+    {
+        Debug.Assert(Model.Items is not null);
+        Debug.Assert(Model.Shuffle is not null);
+        Model.Shuffle.Shuffle();
+    }
 }
 
-public enum ItemType
+public enum ItemKind
 {
     Int,
     String,
@@ -415,8 +380,8 @@ public enum ItemType
 
 public class MainMenuViewModel : ObservableObject
 {
-    private MainMenuModel _model;
-    private MainMenuService _service;
+    private readonly MainMenuModel _model;
+    private readonly MainMenuService _service;
 
     public MainMenuViewModel(
         MainMenuModel model,
@@ -438,6 +403,7 @@ public class MainMenuViewModel : ObservableObject
                     // How do I check when this actually changes?
                     OnPropertyChanged(nameof(IsAlgorithmSelected));
                     OnPropertyChanged(nameof(AlgorithmKind));
+                    OnPropertyChanged(nameof(CanStartSorting));
                     return;
 
                 case nameof(MainMenuModel.SelectionFilterKind):
@@ -446,11 +412,21 @@ public class MainMenuViewModel : ObservableObject
                     OnPropertyChanged(nameof(IsFilterSelected));
                     OnPropertyChanged(nameof(SelectionFilterKind));
                     return;
+
+                case nameof(MainMenuModel.IsSorting):
+                    OnPropertyChanged(nameof(IsSortingInProgress));
+                    OnPropertyChanged(nameof(IsSortingNotInProgress));
+                    return;
+
+                case nameof(MainMenuModel.SortingTask):
+                    return;
             }
         };
+        
+        model.ItemCountObservableValue.ValueChanged += _ => OnPropertyChanged(nameof(ItemCount));
     }
 
-    public bool StatusBarVisibility => true;
+    public Visibility StatusBarVisibility => Visibility.Visible;
 
     public string AlgorithmName => _model.SortingAlgorithmKind?.ToString() ?? "None";
     public IEnumerable<SortingAlgorithmKind> AlgorithmKinds => _service.SortingAlgorithmFactory.GetKeys();
@@ -468,26 +444,61 @@ public class MainMenuViewModel : ObservableObject
         get => _model.SelectionFilterKind;
         set => _service.SelectSelectionFilter(value);
     }
-}
 
+    public bool IsSortingNotInProgress => _service.IsSortingNotInProgress;
+    public bool IsSortingInProgress => _service.IsSortingInProgress;
+    public bool CanStartSorting => IsAlgorithmSelected
+        && AreItemsInitialized
+        && _service.IsSortingNotInProgress;
+
+    public bool AreItemsInitialized => _model.Items is not null; 
+    public bool CanStopSorting => IsSortingInProgress;
+    public bool CanShuffle => AreItemsInitialized && _service.IsSortingNotInProgress;
+    public bool CanInitializeItems => !AreItemsInitialized;
+
+    public IEnumerable<ItemKind> ItemKinds => _ItemKinds;
+    private static readonly ItemKind[] _ItemKinds = (ItemKind[]) Enum.GetValues(typeof(ItemKind));
+    public ItemKind? ItemKind
+    {
+        get => _model.ItemKind;
+        set => _service.SelectItemKind(value);
+    }
+    
+    public int ItemCount => _model.Items?.List.Count ?? 0;
+}
 
 public partial class MainMenu : Window
 {
-    public MainMenuViewModel ViewModel { get; }
+    private MainMenuViewModel _viewModel;
+    private readonly MainMenuService _service;
 
-    public MainMenu(MainMenuViewModel viewModel)
+    public MainMenu(MainMenuViewModel viewModel, MainMenuService service)
     {
-        ViewModel = viewModel;
-        DataContext = ViewModel;
+        _service = service;
+        _viewModel = viewModel;
+        DataContext = _viewModel;
+        
+        service.Model.SelectionFilterProvider.ValueChanged += selectionFilter =>
+        {
+            FilterPanel.Children.Clear();
+            selectionFilter?.EnableUi(FilterPanel);
+        };
+        
         InitializeComponent();
     }
 
-    private void InitializeComponent()
+    public async void StartSorting(object sender, RoutedEventArgs e)
     {
-
+        await _service.StartSorting();
     }
 
-    public void SelectAlgorithm(object sender, RoutedEventArgs e)
+    public void Randomize(object sender, RoutedEventArgs e)
     {
+        _service.Randomize();
+    }
+
+    public void Shuffle(object sender, RoutedEventArgs e)
+    {
+        _service.Shuffle();
     }
 }

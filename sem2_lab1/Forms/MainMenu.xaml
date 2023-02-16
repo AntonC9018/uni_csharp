@@ -3,10 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MainMenu"
-        xmlns:toolkit="http://schemas.xceed.com/wpf/xaml/toolkit"
-        xmlns:icons="http://metro.mahapps.com/winfx/xaml/iconpacks"
-        xmlns:avalonDock="https://github.com/Dirkster99/AvalonDock"
+        xmlns:local="clr-namespace:Laborator1"
         mc:Ignorable="d"
         Title="Main Menu">
     <DockPanel
@@ -25,21 +22,73 @@
                 Click="Randomize"
                 IsEnabled="{Binding IsAlgorithmSelected}"
                 />
+            <MenuItem
+                Header="_Shuffle"
+                Click="Shuffle"
+                IsEnabled="{Binding CanShuffle}"
+                />
         </Menu>
         <StackPanel
             Orientation="Vertical"
             DockPanel.Dock="Top"
             >
+            
+            <StackPanel
+                Name="ItemsPanel"
+            >
+            </StackPanel>
+            
+            <StackPanel
+                Name="FilterPanel"
+            >
+            </StackPanel>
+            
+            <Label>Item Kind</Label>
+            <ComboBox
+                Name="ItemKindDropdown"
+                ItemsSource="{Binding ItemKinds}"
+                SelectedItem="{Binding ItemKind}"
+                />
+            
+            <Label>Algorithm</Label>
             <ComboBox
                 Name="AlgorithmDropdown"
                 ItemsSource="{Binding AlgorithmKinds}"
                 SelectedItem="{Binding AlgorithmKind}"
                 />
+            
+            <Label>Filter</Label>
             <ComboBox
                 Name="FilterDropdown"
                 ItemsSource="{Binding SelectionFilterKinds}"
                 SelectedItem="{Binding SelectionFilterKind}"
                 IsEnabled="{Binding IsAlgorithmSelected}"
+                />
+            
+
+            <Button
+                Name="SortButton"
+                Content="Sort"
+                Click="StartSorting"
+                IsEnabled="{Binding CanStartSorting}"
+                />
+            
+            <Button
+                Name="ShuffleButton"
+                Content="Shuffle"
+                Click="Shuffle"
+                IsEnabled="{Binding CanShuffle}"
+                />
+            
+            <Label>Item Count</Label>
+            <Slider
+                Minimum="0"
+                Maximum="100"
+                IsEnabled="{Binding AreItemsInitialized}"
+                Value="{Binding ItemCount}"
+                IsSnapToTickEnabled="True"
+                TickFrequency="1"
+                TickPlacement="BottomRight"
                 />
         </StackPanel>
         <StatusBar
@@ -47,25 +96,19 @@
             Height="30"
             Visibility="{Binding StatusBarVisibility}"
             >
-            <StatusBar.Resources>
-                <Style x:Key="MenuButton" TargetType="Button">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Width" Value="Auto" />
-                    <Setter Property="Foreground" Value="Black" />
-                    <Setter Property="BorderThickness" Value="0" />
-                </Style>
-            </StatusBar.Resources>
-            <StatusBarItem>
-                <Label
-                    Style="{StaticResource MenuButton}"
-                    Content="{Binding AlgorithmName}"
-                    ToolTip="Currently selected algorithm"
-                    />
-                <Label
-                    Style="{StaticResource MenuButton}"
-                    Content="{Binding FilterName}"
-                    ToolTip="Currently selected filter"
-                    />
+            <StatusBarItem
+                HorizontalContentAlignment="Stretch"
+                >
+                <StackPanel>
+                    <Label
+                        Content="{Binding AlgorithmName}"
+                        ToolTip="Currently selected algorithm"
+                        />
+                    <Label
+                        Content="{Binding FilterName}"
+                        ToolTip="Currently selected filter"
+                        />
+                </StackPanel>
             </StatusBarItem>
         </StatusBar>
     </DockPanel>
