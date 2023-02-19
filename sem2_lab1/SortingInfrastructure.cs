@@ -13,7 +13,7 @@ namespace Laborator1;
 public struct SortingContext<T>
 {
     public ISortDisplay Display;
-    public IList<T> Items;
+    public IList<T?> Items;
     public IComparer<T> Comparer;
 }
 
@@ -50,7 +50,7 @@ public enum SortingAlgorithmKind
     Selection,
 }
 
-public class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKind, ISortingAlgorithm>
+public sealed class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKind, ISortingAlgorithm>
 {
     public static SortingAlgorithmFactory Instance { get; } = new SortingAlgorithmFactory();
 
@@ -61,9 +61,9 @@ public class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKind, ISor
     {
         _keys = (SortingAlgorithmKind[]) Enum.GetValues(typeof(SortingAlgorithmKind));
         _algorithms = new ISortingAlgorithm[_keys.Length];
-        _algorithms[(int) SortingAlgorithmKind.Quick] = new QuickSortAlgorithm();
-        _algorithms[(int) SortingAlgorithmKind.Heap] = new HeapSortAlgorithm();
-        _algorithms[(int) SortingAlgorithmKind.Selection] = new SelectionSortAlgorithm();
+        _algorithms[(int) SortingAlgorithmKind.Quick] = QuickSortAlgorithm.Instance;
+        _algorithms[(int) SortingAlgorithmKind.Heap] = HeapSortAlgorithm.Instance;
+        _algorithms[(int) SortingAlgorithmKind.Selection] = SelectionSortAlgorithm.Instance;
         Debug.Assert(_algorithms.All(x => x is not null));
     }
 
@@ -71,24 +71,30 @@ public class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKind, ISor
     public ISortingAlgorithm GetService(SortingAlgorithmKind key) => _algorithms[(int) key];
 }
 
-public class QuickSortAlgorithm : ISortingAlgorithm
+public sealed class QuickSortAlgorithm : ISortingAlgorithm
 {
+    public static QuickSortAlgorithm Instance { get; } = new();
+
     public async Task Sort<T>(SortingContext<T> context)
     {
         await SortingImplementations.QuickSort(context);
     }
 }
 
-public class HeapSortAlgorithm : ISortingAlgorithm
+public sealed class HeapSortAlgorithm : ISortingAlgorithm
 {
+    public static HeapSortAlgorithm Instance { get; } = new();
+
     public async Task Sort<T>(SortingContext<T> context)
     {
         await SortingImplementations.HeapSort(context);
     }
 }
 
-public class SelectionSortAlgorithm : ISortingAlgorithm
+public sealed class SelectionSortAlgorithm : ISortingAlgorithm
 {
+    public static SelectionSortAlgorithm Instance { get; } = new();
+
     public async Task Sort<T>(SortingContext<T> context)
     {
         await SortingImplementations.SelectionSort(context);
@@ -101,13 +107,13 @@ public enum SelectionFilterKind
     Arbitrary,
 }
 
-public class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelectionFilter>
+public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelectionFilter>
 {
     private readonly SelectionFilterKind[] _keys;
-    private readonly IProvider<RangeSelectionFilterModel> _rangeModel;
+    private readonly IGetter<RangeSelectionFilterModel> _rangeModel;
     
     public SelectionFilterFactory(
-        IProvider<RangeSelectionFilterModel> rangeModel)
+        IGetter<RangeSelectionFilterModel> rangeModel)
     {
         _rangeModel = rangeModel;
         _keys = (SelectionFilterKind[]) Enum.GetValues(typeof(SelectionFilterKind));
@@ -128,7 +134,7 @@ public class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelec
     }
 }
 
-public class RangeSelectionFilter : ISelectionFilter
+public sealed class RangeSelectionFilter : ISelectionFilter
 {
     private RangeSelectionFilterModel _model;
 
@@ -151,7 +157,7 @@ public class RangeSelectionFilter : ISelectionFilter
     }
 }
 
-public class ArbitrarySelectionFilter : ISelectionFilter
+public sealed class ArbitrarySelectionFilter : ISelectionFilter
 {
     public void EnableUi(Panel viewport)
     {
@@ -164,7 +170,7 @@ public class ArbitrarySelectionFilter : ISelectionFilter
     }
 }
 
-public class SortDisplay : ISortDisplay
+public sealed class SortDisplay : ISortDisplay
 {
     public Task BeginSwap(int index0, int index1)
     {

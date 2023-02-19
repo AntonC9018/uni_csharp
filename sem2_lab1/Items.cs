@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using Shared;
 
 namespace Laborator1;
@@ -10,6 +12,7 @@ public interface IItems
     void ResizeArray(int newSize);
     System.Type ElementType { get; }
     IList List { get; }
+    INotifyCollectionChanged ListAsObservable { get; }
     event Action<int> CountChanged;
 }
 
@@ -18,7 +21,7 @@ public interface IShuffle
     void Shuffle();
 }
 
-public class Shuffler<T> : IShuffle
+public sealed class Shuffler<T> : IShuffle
 {
     private readonly ItemsData<T> _items;
     private readonly Random _random;
@@ -31,11 +34,11 @@ public class Shuffler<T> : IShuffle
     
     public void Shuffle()
     {
-        _random.Shuffle(_items.Items.AsSpan());
+        _random.Shuffle(_items.Items);
     }
 }
 
-public class ItemCountObservableValue : IObservableValue<int>
+public sealed class ItemCountObservableValue : IObservableValue<int>
 {
     private IItems? _items;
 
@@ -62,26 +65,64 @@ public class ItemCountObservableValue : IObservableValue<int>
     public int Get() => Value;
 }
 
-public class ItemsData<T> : IItems
+public sealed class ItemsData<T> : IItems
 {
-    public T[] Items { get; set; }
+    public ObservableCollection<T?> Items { get; set; }
     public IComparer<T> Comparer { get; set; }
+    public IGetter<T> NewItemFactory { get; set; }
 
-    public ItemsData(T[] items, IComparer<T> comparer)
+    public ItemsData(ObservableCollection<T?> items, IComparer<T> comparer, IGetter<T> newItemFactory)
     {
         Items = items;
         Comparer = comparer;
+        NewItemFactory = newItemFactory;
     }
 
     public void ResizeArray(int newSize)
     {
-        var it = Items;
-        Array.Resize(ref it, newSize);
-        Items = it;
+        // This is stupid!
+        while (Items.Count < newSize)
+            Items.Add(NewItemFactory.Get());
+        while (Items.Count > newSize)
+            Items.RemoveAt(Items.Count);
+        
         CountChanged?.Invoke(newSize);
     }
 
     IList IItems.List => Items;
+    INotifyCollectionChanged IItems.ListAsObservable => Items;
     public event Action<int>? CountChanged;
     System.Type IItems.ElementType => typeof(T);
+}
+
+
+public sealed class ItemsStringsFiller
+{
+    private readonly ObservableCollection<string> _target;
+    private readonly Func<object?, string> _factory;
+    
+    public ItemsStringsFiller(ObservableCollection<string> target, IObservableValue<IItems> items)
+    {
+        _target = target;
+        _factory = (object? value) => value?.ToString() ?? "";
+        items.ValueChanged += ResetItems;
+        ResetItems(items.Get());
+    }
+
+    private void ResetItems(IItems? items)
+    {
+        _target.Clear();
+
+        if (items is null)
+            return;
+
+        items.ListAsObservable.CollectionChanged += _target.WrapCollectionChanged(_factory);
+        foreach (var s in items.List)
+            _target.Add(_factory(s));
+    }
+
+    public static void Apply(ObservableCollection<string> target, IObservableValue<IItems> items)
+    {
+        new ItemsStringsFiller(target, items);
+    }
 }

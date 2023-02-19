@@ -11,40 +11,41 @@ public interface IItemRandomizer<T> : IItemRandomizer
 {
 }
 
-public abstract class ItemsRandomizerBase<T> : IItemRandomizer<T>
+public interface IRandomGetter<T> : IGetter<T>
 {
-    protected readonly ItemsData<T> Items;
-
-    protected ItemsRandomizerBase(ItemsData<T> items)
-    {
-        Items = items;
-    }
-
-    public virtual void Randomize()
-    {
-        var items = Items.Items;
-        for (var i = 0; i < items.Length; i++)
-            RandomizeItem(ref items[i], i);
-    }
-
-    protected abstract void RandomizeItem(ref T currentItem, int index);
 }
 
-public class IntItemsRandomizer : ItemsRandomizerBase<int>
+public sealed class RandomIntGetter : IRandomGetter<int>
 {
-    private readonly Random _random = new();
+    private readonly Random _random;
 
-    public IntItemsRandomizer(ItemsData<int> items) : base(items)
+    public RandomIntGetter(Random? random = null)
     {
+        _random = random ?? new();
     }
-    
-    protected override void RandomizeItem(ref int currentItem, int index)
+
+    public int Get()
     {
-        currentItem = _random.Next();
+        return _random.Next();
     }
 }
 
-public class StringItemsRandomizer : ItemsRandomizerBase<string>
+public sealed class RandomFloatGetter : IRandomGetter<float>
+{
+    private readonly Random _random;
+
+    public RandomFloatGetter(Random? random = null)
+    {
+        _random = random ?? new();
+    }
+
+    public float Get()
+    {
+        return (float) _random.NextDouble();
+    }
+}
+
+public sealed class RandomStringGetter : IRandomGetter<string>
 {
     private static readonly string[] _Strings = new[]
     {
@@ -80,28 +81,35 @@ public class StringItemsRandomizer : ItemsRandomizerBase<string>
         "twitter",
         "tiktok",
     };
-    private readonly Random _random = new();
+    private readonly Random _random;
 
-    public StringItemsRandomizer(ItemsData<string> items) : base(items)
+    public RandomStringGetter(Random? random = null)
     {
+        _random = random ?? new();
     }
 
-    protected override void RandomizeItem(ref string currentItem, int index)
+    public string Get()
     {
-        currentItem = _Strings[_random.NextInt64(0, _Strings.LongLength)];
+        return _Strings[_random.NextInt64(0, _Strings.LongLength)];
     }
 }
 
-public class FloatItemsRandomizer : ItemsRandomizerBase<float>
-{
-    private readonly Random _random = new();
 
-    public FloatItemsRandomizer(ItemsData<float> items) : base(items)
+public sealed class ItemsRandomizer<T> : IItemRandomizer<T>
+{
+    private readonly ItemsData<T> _items;
+    private readonly IRandomGetter<T> _randomGetter;
+
+    public ItemsRandomizer(ItemsData<T> items, IRandomGetter<T> randomGetter)
     {
+        _items = items;
+        _randomGetter = randomGetter;
     }
 
-    protected override void RandomizeItem(ref float currentItem, int index)
+    public void Randomize()
     {
-        currentItem = (float) _random.NextDouble();
+        var items = _items.Items;
+        for (var i = 0; i < items.Count; i++)
+            items[i] = _randomGetter.Get();
     }
 }

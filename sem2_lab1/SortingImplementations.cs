@@ -4,14 +4,14 @@ namespace Laborator1;
 
 public static class SortingImplementations
 {
-    private class _InternalSortContext<T>
+    private sealed class _InternalSortContext<T>
     {
         public SortingContext<T> Context;
 
-        public ListSegment<T> WholeSpan => new ListSegment<T>(Context.Items);
+        public ListSegment<T?> WholeSpan => new(Context.Items);
         public int StartIndex;
         public int SpanLength;
-        public ListSegment<T> Span => WholeSpan.Slice(StartIndex, SpanLength);
+        public ListSegment<T?> Span => WholeSpan.Slice(StartIndex, SpanLength);
 
         public _InternalSortContext(SortingContext<T> context)
         {

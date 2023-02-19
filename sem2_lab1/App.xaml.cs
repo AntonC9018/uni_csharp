@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Laborator1;
 
-public partial class App : Application
+public sealed partial class App : Application
 {
     private void Main(object sender, StartupEventArgs e)
     {
@@ -29,7 +29,7 @@ public partial class App : Application
         {
             s.AddScoped<IObservableValue<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
             s.AddScoped<IObservableRepo<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
-            s.AddScoped<IProvider<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
+            s.AddScoped<IGetter<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
             s.AddScoped<ISetter<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
             s.AddScoped<ObservableValue<T>, ObservableValue<T>>();
         }
@@ -57,7 +57,11 @@ public partial class App : Application
             sp => new RangeSelectionFilterModel(
                 sp.GetRequiredService<ItemCountObservableValue>()));
 
-        services.AddScoped<IProvider<RangeSelectionFilterModel>, ValueProvider<RangeSelectionFilterModel>>();
+        services.AddScoped<IGetter<RangeSelectionFilterModel>, ValueGetter<RangeSelectionFilterModel>>();
+
+        services.AddScoped<IRandomGetter<int>, RandomIntGetter>();
+        services.AddScoped<IRandomGetter<float>, RandomFloatGetter>();
+        services.AddScoped<IRandomGetter<string>, RandomStringGetter>();
         
         var serviceProvider = services.BuildServiceProvider();
 

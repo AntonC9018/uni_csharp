@@ -4,12 +4,12 @@ using Microsoft.Toolkit.Mvvm.ComponentModel;
 namespace Laborator1;
 
 
-public interface IProvider<out T>
+public interface IGetter<out T>
 {
     T? Get();
 }
 
-public interface IProperty<out T>
+public interface IChangedEvent<out T>
 {
     event Action<T?> ValueChanged;
 }
@@ -19,7 +19,7 @@ public interface ISetter<in T>
     void Set(T? value);
 }
 
-public interface IObservableValue<out T> : IProvider<T>, IProperty<T>
+public interface IObservableValue<out T> : IGetter<T>, IChangedEvent<T>
 {
 }
 
@@ -29,7 +29,7 @@ public interface IObservableRepo<T> : ISetter<T>, IObservableValue<T>
 
 public static class ProviderExtensions
 {
-    public static T GetRequired<T>(this IProvider<T> p)
+    public static T GetRequired<T>(this IGetter<T> p)
     {
         var value = p.Get();
         if (value is null)
@@ -38,7 +38,7 @@ public static class ProviderExtensions
     }
 }
 
-public class ObservableValue<T> : IObservableRepo<T>
+public sealed class ObservableValue<T> : IObservableRepo<T>
 {
     private T? _value;
     public T? Value
@@ -52,14 +52,14 @@ public class ObservableValue<T> : IObservableRepo<T>
     }
 
     public event Action<T?>? ValueChanged;
-    public void Set(T value) => Value = value;
+    public void Set(T? value) => Value = value;
     public T? Get() => Value;
 }
 
-public class ValueProvider<T> : IProvider<T>
+public sealed class ValueGetter<T> : IGetter<T>
 {
     public T? Value { get; }
-    public ValueProvider(T value)
+    public ValueGetter(T value)
     {
         Value = value;
     }

@@ -14,7 +14,7 @@ public interface IDirectionalComparer
     SortDirection Direction { get; set; }
 }
 
-public class DirectionalComparerDecorator<T> : IComparer<T>, IDirectionalComparer
+public sealed class DirectionalComparerDecorator<T> : IComparer<T>, IDirectionalComparer
 {
     public DirectionalComparerDecorator(IComparer<T> comparer)
     {

@@ -15,6 +15,15 @@ public static class RandomHelper
             Helper.Swap(ref array[i], ref array[j]);
         }
     }
+    
+    public static void Shuffle<T>(this Random rand, IList<T> array)
+    {
+        for (int i = 0; i < array.Count; i++)
+        {
+            int j = rand.Next(0, array.Count);
+            array.Swap(i, j);
+        }
+    }
 }
 
 public enum ArrayInitializationKind
@@ -227,6 +236,13 @@ public static class Helper
         T t = a;
         a = b;
         b = t;
+    }
+    
+    public static void Swap<T>(this IList<T> list, int i1, int i2)
+    {
+        T t = list[i1];
+        list[i1] = list[i2];
+        list[i2] = t;
     }
 
     public static int GetNumDecimalDigits(int value)

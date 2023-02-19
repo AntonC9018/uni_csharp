@@ -4,18 +4,18 @@ using Microsoft.Toolkit.Mvvm.ComponentModel;
 
 namespace lab1.Forms;
 
-public class RangeSelectionFilterModel : ObservableObject
+public sealed class RangeSelectionFilterModel : ObservableObject
 {
-    private readonly IProvider<int> _countProvider;
+    private readonly IGetter<int> _countGetter;
     private int _from;
     private int _to;
     
-    public RangeSelectionFilterModel(IObservableValue<int> countProvider)
+    public RangeSelectionFilterModel(IObservableValue<int> countGetter)
     {
-        countProvider.ValueChanged += _ => OnPropertyChanged(nameof(Count));
-        _countProvider = countProvider;
+        countGetter.ValueChanged += _ => OnPropertyChanged(nameof(Count));
+        _countGetter = countGetter;
         _from = 0;
-        _to = countProvider.Get();
+        _to = countGetter.Get();
     }
     
     public int From
@@ -30,10 +30,10 @@ public class RangeSelectionFilterModel : ObservableObject
         set => SetProperty(ref _to, value);
     }
     
-    public int Count => _countProvider.Get();
+    public int Count => _countGetter.Get();
 }
 
-public class RangeSelectionFilterViewModel : ObservableObject
+public sealed class RangeSelectionFilterViewModel : ObservableObject
 {
     private readonly RangeSelectionFilterModel _model;
     public RangeSelectionFilterViewModel(RangeSelectionFilterModel model)
@@ -57,7 +57,7 @@ public class RangeSelectionFilterViewModel : ObservableObject
     public int Count => _model.Count;
 }
 
-public partial class RangeSelectionFilterUserControl : UserControl
+public sealed partial class RangeSelectionFilterUserControl : UserControl
 {
     private RangeSelectionFilterViewModel _viewModel;
     public RangeSelectionFilterUserControl(RangeSelectionFilterViewModel viewModel)

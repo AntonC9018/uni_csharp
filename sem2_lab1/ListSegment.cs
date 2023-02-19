@@ -72,7 +72,7 @@ public readonly struct ListSegment<T> : IEnumerable<T>
             return _index < _segment.SpanLength;
         }
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
         public void Dispose()
         {
         }

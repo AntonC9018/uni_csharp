@@ -10,19 +10,19 @@ public interface ISortingService
 }
 
 // Used to invoke the sorting algorithm
-public class SortingService<T> : ISortingService
+public sealed class SortingService<T> : ISortingService
 {
     private readonly ItemsData<T> _items;
-    private readonly IProvider<ISortingAlgorithm> _algorithm;
-    private readonly IProvider<ISortDisplay> _sortDisplay;
-    private readonly IProvider<ISelectionFilter> _selectionFilter;
+    private readonly IGetter<ISortingAlgorithm> _algorithm;
+    private readonly IGetter<ISortDisplay> _sortDisplay;
+    private readonly IGetter<ISelectionFilter> _selectionFilter;
     private readonly IComparer<T> _comparer;
 
     public SortingService(
         ItemsData<T> items,
-        IProvider<ISortingAlgorithm> algorithm,
-        IProvider<ISortDisplay> sortDisplay,
-        IProvider<ISelectionFilter> selectionFilter,
+        IGetter<ISortingAlgorithm> algorithm,
+        IGetter<ISortDisplay> sortDisplay,
+        IGetter<ISelectionFilter> selectionFilter,
         IComparer<T> comparer)
     {
         _items = items;
@@ -55,7 +55,7 @@ public class SortingService<T> : ISortingService
     }
 }
 
-public class RemappingSortDisplay : ISortDisplay
+public sealed class RemappingSortDisplay : ISortDisplay
 {
     private readonly ISortDisplay _display;
     private readonly IReadOnlyList<int> _indices;

@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Media3D;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 
 namespace Laborator1;
@@ -36,9 +40,10 @@ public struct MainMenuModelData
     public Task? SortingTask;
 
     public IObservableValue<int>? ItemCountObservableValue;
+    public ObservableCollection<string> ItemStrings;
 }
 
-public class MainMenuModel : ObservableObject
+public sealed class MainMenuModel : ObservableObject
 {
     private MainMenuModelData _data;
 
@@ -49,6 +54,7 @@ public class MainMenuModel : ObservableObject
         IObservableRepo<IItems> itemsObservableValue,
         IObservableValue<int> itemCountObservableValue)
     {
+        var itemStrings = new ObservableCollection<string>();
         _data = new()
         {
             SortingAlgorithmProvider = sortingAlgorithmProvider,
@@ -56,12 +62,15 @@ public class MainMenuModel : ObservableObject
             SelectionFilterProvider = selectionFilterProvider,
             ItemsObservableValue = itemsObservableValue,
             ItemCountObservableValue = itemCountObservableValue,
+            ItemStrings = itemStrings,
         };
+
+        ItemsStringsFiller.Apply(itemStrings, itemsObservableValue);
     }
 
-    private IObservableRepo<ISortingAlgorithm> SortingAlgorithmObservableRepo => _data.SortingAlgorithmProvider!;
-    private IObservableRepo<ISelectionFilter> SelectionFilterObservableRepo => _data.SelectionFilterProvider!;
-    private IObservableRepo<ISortDisplay> SortDisplayObservableRepo => _data.SortDisplayProvider!;
+    private IObservableRepo<ISortingAlgorithm> SortingAlgorithmRepo => _data.SortingAlgorithmProvider!;
+    private IObservableRepo<ISelectionFilter> SelectionFilterRepo => _data.SelectionFilterProvider!;
+    private IObservableRepo<ISortDisplay> SortDisplayRepo => _data.SortDisplayProvider!;
     
     public IObservableValue<ISortingAlgorithm> SortingAlgorithmProvider => _data.SortingAlgorithmProvider!;
     public IObservableValue<ISelectionFilter> SelectionFilterProvider => _data.SelectionFilterProvider!;
@@ -86,12 +95,12 @@ public class MainMenuModel : ObservableObject
         {
             var v = t.Value;
             _data.SortingAlgorithmKind = v.kind;
-            SortingAlgorithmObservableRepo.Set(v.algorithm);
+            SortingAlgorithmRepo.Set(v.algorithm);
         }
         else
         {
             _data.SortingAlgorithmKind = null;
-            SortingAlgorithmObservableRepo.Set(null);
+            SortingAlgorithmRepo.Set(null);
         }
         OnPropertyChanged(nameof(SortingAlgorithmKind));
         OnPropertyChanged(nameof(SortingAlgorithm));
@@ -104,7 +113,7 @@ public class MainMenuModel : ObservableObject
         {
             if (SortDisplayProvider.Get() == value)
                 return;
-            SortDisplayObservableRepo.Set(value);
+            SortDisplayRepo.Set(value);
             OnPropertyChanged(nameof(SortDisplay));
         }
     }
@@ -124,7 +133,7 @@ public class MainMenuModel : ObservableObject
     public void SetSelectionFilter((SelectionFilterKind kind, ISelectionFilter filter)? t)
     {
         _data.SelectionFilterKind = t?.kind ?? null;
-        SelectionFilterObservableRepo.Set(t?.filter ?? null);
+        SelectionFilterRepo.Set(t?.filter ?? null);
         OnPropertyChanged(nameof(SelectionFilterKind));
         OnPropertyChanged(nameof(SelectionFilter));
     }
@@ -213,20 +222,23 @@ public class MainMenuModel : ObservableObject
     public IObservableValue<int> ItemCountObservableValue => _data.ItemCountObservableValue!;
 }
 
-public class MainMenuService
+public sealed class MainMenuService
 {
     public MainMenuModel Model { get; }
     public IKeyedProvider<SortingAlgorithmKind, ISortingAlgorithm> SortingAlgorithmFactory { get; }
     public IKeyedProvider<SelectionFilterKind, ISelectionFilter> SelectionFilterFactory { get; }
+    private IServiceProvider _serviceProvider;
 
     public MainMenuService(
         MainMenuModel model,
         IKeyedProvider<SortingAlgorithmKind, ISortingAlgorithm> sortingAlgorithmFactory,
-        IKeyedProvider<SelectionFilterKind, ISelectionFilter> selectionFilterFactory)
+        IKeyedProvider<SelectionFilterKind, ISelectionFilter> selectionFilterFactory,
+        IServiceProvider serviceProvider)
     {
         SortingAlgorithmFactory = sortingAlgorithmFactory;
         SelectionFilterFactory = selectionFilterFactory;
         Model = model;
+        _serviceProvider = serviceProvider;
     }
 
     public void SelectAlgorithm(SortingAlgorithmKind? kind)
@@ -273,7 +285,6 @@ public class MainMenuService
         if (items is null)
             return;
         items.ResizeArray(count);
-        Model.Randomizer?.Randomize();
     }
 
     public void SelectItemKind(ItemKind? itemType)
@@ -290,13 +301,21 @@ public class MainMenuService
         const int defaultItemCount = 10;
         var itemCount = Model.Items?.List.Count ?? defaultItemCount;
 
-        void SetItems<T>(Func<ItemsData<T>, IItemRandomizer<T>> createRandomizer)
+        void SetItems<T>()
         {
+            if (currentType == typeof(T))
+                return;
             var comparer = new DirectionalComparerDecorator<T>(Comparer<T>.Default);
-            var items = new ItemsData<T>(new T[itemCount], comparer);
-            var randomizer = createRandomizer(items);
+            var randomGetter = _serviceProvider.GetRequiredService<IRandomGetter<T>>();
+            var randomItems = Enumerable.Range(0, itemCount).Select(_ => randomGetter.Get());
+            var items = new ItemsData<T>(new(randomItems), comparer, randomGetter);
+
+            // Wrappers that allow calling methods on the items without knowing the generic type.
+            // Could realistically just use delegates, these would save some boilerplate.
+            var randomizer = new ItemsRandomizer<T>(items, randomGetter);
             var shuffle = new Shuffler<T>(items);
             var service = new SortingService<T>(items, Model.SortingAlgorithmProvider, Model.SortDisplayProvider, Model.SelectionFilterProvider, comparer);
+
             Model.SetItems((items, randomizer, comparer, shuffle, service));
         }
 
@@ -304,23 +323,17 @@ public class MainMenuService
         {
             case ItemKind.Int:
             {
-                if (currentType == typeof(int))
-                    return;
-                SetItems<int>(items => new IntItemsRandomizer(items));
+                SetItems<int>();
                 break;
             }
             case ItemKind.String:
             {
-                if (currentType == typeof(string))
-                    return;
-                SetItems<string>(items => new StringItemsRandomizer(items));
+                SetItems<string>();
                 break;
             }
             case ItemKind.Float:
             {
-                if (currentType == typeof(float))
-                    return;
-                SetItems<float>(items => new FloatItemsRandomizer(items));
+                SetItems<float>();
                 break;
             }
             default:
@@ -378,7 +391,7 @@ public enum ItemKind
     Float,
 }
 
-public class MainMenuViewModel : ObservableObject
+public sealed class MainMenuViewModel : ObservableObject
 {
     private readonly MainMenuModel _model;
     private readonly MainMenuService _service;
@@ -467,7 +480,7 @@ public class MainMenuViewModel : ObservableObject
     public int ItemCount => _model.Items?.List.Count ?? 0;
 }
 
-public partial class MainMenu : Window
+public sealed partial class MainMenu : Window
 {
     private MainMenuViewModel _viewModel;
     private readonly MainMenuService _service;
