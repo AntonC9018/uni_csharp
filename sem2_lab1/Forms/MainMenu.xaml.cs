@@ -305,15 +305,17 @@ public sealed class MainMenuService
         {
             if (currentType == typeof(T))
                 return;
-            var comparer = new DirectionalComparerDecorator<T>(Comparer<T>.Default);
+
             var randomGetter = _serviceProvider.GetRequiredService<IRandomGetter<T>>();
             var randomItems = Enumerable.Range(0, itemCount).Select(_ => randomGetter.Get());
-            var items = new ItemsData<T>(new(randomItems), comparer, randomGetter);
+            var items = new ItemsData<T>(new(randomItems), randomGetter);
 
             // Wrappers that allow calling methods on the items without knowing the generic type.
             // Could realistically just use delegates, these would save some boilerplate.
             var randomizer = new ItemsRandomizer<T>(items, randomGetter);
             var shuffle = new Shuffler<T>(items);
+            
+            var comparer = new DirectionalComparerDecorator<T>(Comparer<T>.Default);
             var service = new SortingService<T>(items, Model.SortingAlgorithmProvider, Model.SortDisplayProvider, Model.SelectionFilterProvider, comparer);
 
             Model.SetItems((items, randomizer, comparer, shuffle, service));

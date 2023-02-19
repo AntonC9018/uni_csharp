@@ -68,13 +68,11 @@ public sealed class ItemCountObservableValue : IObservableValue<int>
 public sealed class ItemsData<T> : IItems
 {
     public ObservableCollection<T?> Items { get; set; }
-    public IComparer<T> Comparer { get; set; }
     public IGetter<T> NewItemFactory { get; set; }
 
-    public ItemsData(ObservableCollection<T?> items, IComparer<T> comparer, IGetter<T> newItemFactory)
+    public ItemsData(ObservableCollection<T?> items, IGetter<T> newItemFactory)
     {
         Items = items;
-        Comparer = comparer;
         NewItemFactory = newItemFactory;
     }
 

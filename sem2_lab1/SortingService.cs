@@ -34,23 +34,36 @@ public sealed class SortingService<T> : ISortingService
 
     public Task StartSorting()
     {
-        var indices = _selectionFilter.GetRequired().GetEnabledIndices().ToArray();
-        var items = _items.Items;
-        var filteredItems = indices.Select(i => items[i]).ToArray();
+        var selectionFilter = _selectionFilter.Get();
         var sortDisplay = _sortDisplay.GetRequired();
+        var items = _items.Items;
         var algorithm = _algorithm.GetRequired();
-        
-        // The sort display has to be able to remap the indices.
-        // This is because the sorting algorithm only sees the filtered items.
-        // We do this by wrapping the display in a remapping display.
-        var remappingDisplay = new RemappingSortDisplay(sortDisplay, indices);
-        
+
+        IList<T?> itemsCopy;
+        if (selectionFilter is not null)
+        {
+            var indices = selectionFilter.GetEnabledIndices().ToArray();
+            var filteredItems = indices.Select(i => items[i]).ToArray();
+            
+            // The sort display has to be able to remap the indices.
+            // This is because the sorting algorithm only sees the filtered items.
+            // We do this by wrapping the display in a remapping display.
+            var remappingDisplay = new RemappingSortDisplay(sortDisplay, indices);
+            sortDisplay = remappingDisplay;
+            itemsCopy = filteredItems;
+        }
+        else
+        {
+            itemsCopy = items.ToArray();
+        }
+
         var context = new SortingContext<T>
         {
-            Display = remappingDisplay,
-            Items = filteredItems,
+            Display = sortDisplay,
+            Items = itemsCopy,
             Comparer = _comparer,
         };
+        
         return algorithm.Sort(context);
     }
 }
