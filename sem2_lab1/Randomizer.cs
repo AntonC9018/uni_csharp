@@ -11,7 +11,7 @@ public interface IItemRandomizer<T> : IItemRandomizer
 {
 }
 
-public interface IRandomGetter<T> : IGetter<T>
+public interface IRandomGetter<out T> : IGetter<T>
 {
 }
 

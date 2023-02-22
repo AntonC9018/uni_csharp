@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -75,6 +76,7 @@ public sealed class MainMenuModel : ObservableObject
     public IObservableValue<ISortingAlgorithm> SortingAlgorithmProvider => _data.SortingAlgorithmProvider!;
     public IObservableValue<ISelectionFilter> SelectionFilterProvider => _data.SelectionFilterProvider!;
     public IObservableValue<ISortDisplay> SortDisplayProvider => _data.SortDisplayProvider!;
+    public IObservableValue<ISortDisplay> ItemsObservable => _data.SortDisplayProvider!;
 
     
     public ISortingAlgorithm? SortingAlgorithm
@@ -150,7 +152,7 @@ public sealed class MainMenuModel : ObservableObject
         // set => SetProperty(ref _data.Randomizer, value);
     }
     
-    public void SetItems((IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer, IShuffle shuffle, ISortingService sortingService)? t)
+    public void SetItems((ItemKind itemKind, IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer, IShuffle shuffle, ISortingService sortingService)? t)
     {
         if (t.HasValue)
         {
@@ -160,7 +162,7 @@ public sealed class MainMenuModel : ObservableObject
             _data.DirectionalComparerDecorator = v.comparer;
             _data.SortingService = v.sortingService;
             _data.Shuffle = v.shuffle;
-
+            _data.ItemKind = v.itemKind;
             v.comparer.Direction = _data.SortDirection;
         }
         else
@@ -170,10 +172,12 @@ public sealed class MainMenuModel : ObservableObject
             _data.DirectionalComparerDecorator = null;
             _data.SortingService = null;
             _data.Shuffle = null;
+            _data.ItemKind = null;
         }
 
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(Randomizer));
+        OnPropertyChanged(nameof(ItemKind));
     }
 
     public SortDirection SortDirection
@@ -211,7 +215,6 @@ public sealed class MainMenuModel : ObservableObject
     public ItemKind? ItemKind
     {
         get => _data.ItemKind;
-        set => SetProperty(ref _data.ItemKind, value);
     }
 
     public IShuffle? Shuffle
@@ -318,7 +321,7 @@ public sealed class MainMenuService
             var comparer = new DirectionalComparerDecorator<T>(Comparer<T>.Default);
             var service = new SortingService<T>(items, Model.SortingAlgorithmProvider, Model.SortDisplayProvider, Model.SelectionFilterProvider, comparer);
 
-            Model.SetItems((items, randomizer, comparer, shuffle, service));
+            Model.SetItems((itemKind, items, randomizer, comparer, shuffle, service));
         }
 
         switch (itemKind)
@@ -432,6 +435,10 @@ public sealed class MainMenuViewModel : ObservableObject
                     OnPropertyChanged(nameof(IsSortingInProgress));
                     OnPropertyChanged(nameof(IsSortingNotInProgress));
                     return;
+                
+                case nameof(MainMenuModel.Items):
+                    OnPropertyChanged(nameof(ItemsCollection));
+                    break;
 
                 case nameof(MainMenuModel.SortingTask):
                     return;
@@ -480,6 +487,8 @@ public sealed class MainMenuViewModel : ObservableObject
     }
     
     public int ItemCount => _model.Items?.List.Count ?? 0;
+    
+    public IEnumerable? ItemsCollection => _model.Items?.List;
 }
 
 public sealed partial class MainMenu : Window
@@ -497,6 +506,27 @@ public sealed partial class MainMenu : Window
         {
             FilterPanel.Children.Clear();
             selectionFilter?.EnableUi(FilterPanel);
+        };
+
+        service.Model.PropertyChanged += (_, e) =>
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(MainMenuModel.Items):
+                {
+                    ItemsList.ItemsSource = null;
+                    break;
+                }
+                case nameof(MainMenuModel.ItemKind):
+                {
+                    var itemKind = viewModel.ItemKind;
+                    if (itemKind is null)
+                        return;
+                    ItemsList.ItemTemplate = (DataTemplate) ItemsList.Resources[itemKind.Value.ToString()];
+                    ItemsList.ItemsSource = viewModel.ItemsCollection;
+                    break;
+                }
+            }
         };
         
         InitializeComponent();

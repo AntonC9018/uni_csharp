@@ -32,10 +32,22 @@
             Orientation="Vertical"
             DockPanel.Dock="Top"
             >
-            
             <StackPanel
                 Name="ItemsPanel"
             >
+                <ItemsControl Name="ItemsList" ItemsSource="{Binding ItemsViewModel}">
+                    <ItemsControl.Resources>
+                        <DataTemplate x:Key="String">
+                            <TextBlock Text="{Binding}" />
+                        </DataTemplate>
+                        <DataTemplate x:Key="Int">
+                            <ProgressBar Value="{Binding}" Minimum="0" Maximum="100"></ProgressBar>
+                        </DataTemplate>
+                        <DataTemplate x:Key="Double">
+                            <ProgressBar Value="{Binding}" Minimum="0" Maximum="100"></ProgressBar>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
             </StackPanel>
             
             <StackPanel
