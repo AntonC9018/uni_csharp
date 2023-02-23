@@ -32,28 +32,6 @@
             Orientation="Vertical"
             DockPanel.Dock="Top"
             >
-            <StackPanel
-                Name="ItemsPanel"
-            >
-                <ItemsControl Name="ItemsList" ItemsSource="{Binding ItemsViewModel}">
-                    <ItemsControl.Resources>
-                        <DataTemplate x:Key="String">
-                            <TextBlock Text="{Binding}" />
-                        </DataTemplate>
-                        <DataTemplate x:Key="Int">
-                            <ProgressBar Value="{Binding}" Minimum="0" Maximum="100"></ProgressBar>
-                        </DataTemplate>
-                        <DataTemplate x:Key="Double">
-                            <ProgressBar Value="{Binding}" Minimum="0" Maximum="100"></ProgressBar>
-                        </DataTemplate>
-                    </ItemsControl.Resources>
-                </ItemsControl>
-            </StackPanel>
-            
-            <StackPanel
-                Name="FilterPanel"
-            >
-            </StackPanel>
             
             <Label>Item Kind</Label>
             <ComboBox
@@ -74,9 +52,12 @@
                 Name="FilterDropdown"
                 ItemsSource="{Binding SelectionFilterKinds}"
                 SelectedItem="{Binding SelectionFilterKind}"
-                IsEnabled="{Binding IsAlgorithmSelected}"
+                IsEnabled="{Binding AreItemsInitialized}"
                 />
-            
+            <StackPanel
+                Name="FilterPanel"
+            >
+            </StackPanel>
 
             <Button
                 Name="SortButton"
@@ -96,12 +77,42 @@
             <Slider
                 Minimum="0"
                 Maximum="100"
-                IsEnabled="{Binding AreItemsInitialized}"
-                Value="{Binding ItemCount}"
+                IsEnabled="{Binding AreItemsInitialized, Mode=OneWay}"
+                Value="{Binding ItemCount, Mode=TwoWay}"
                 IsSnapToTickEnabled="True"
                 TickFrequency="1"
                 TickPlacement="BottomRight"
                 />
+            <StackPanel
+                Name="ItemsPanel"
+            >
+                <ItemsControl 
+                    Name="ItemsList" 
+                    ItemsSource="{Binding ItemsViewModel}"
+                >
+                    <ItemsControl.Resources>
+                        <DataTemplate x:Key="String">
+                            <TextBlock Text="{Binding Mode=OneTime}" />
+                        </DataTemplate>
+                        <DataTemplate x:Key="Int">
+                            <ProgressBar 
+                                Value="{Binding Mode=OneTime}" 
+                                Minimum="0" 
+                                Maximum="100"
+                                Height="20"
+                            />
+                        </DataTemplate>
+                        <DataTemplate x:Key="Float">
+                            <ProgressBar 
+                                Value="{Binding Mode=OneTime}" 
+                                Minimum="0" 
+                                Maximum="100"
+                                Height="20"
+                            />
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
+            </StackPanel>
         </StackPanel>
         <StatusBar
             DockPanel.Dock="Bottom"

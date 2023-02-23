@@ -16,7 +16,7 @@
             LabelPlacement="BottomRight"
             ShowRange="True"
             Minimum="0" 
-            Maximum="{Binding NumItems}" 
+            Maximum="{Binding Count, Mode=OneWay}" 
             RangeStart="{Binding From}"
             RangeEnd="{Binding To}"
             ShowValueLabels="True"

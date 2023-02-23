@@ -1,4 +1,6 @@
-﻿using System.Windows.Controls;
+﻿using System;
+using System.ComponentModel;
+using System.Windows.Controls;
 using Laborator1;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 
@@ -33,15 +35,26 @@ public sealed class RangeSelectionFilterModel : ObservableObject
     public int Count => _countGetter.Get();
 }
 
-public sealed class RangeSelectionFilterViewModel : ObservableObject
+public sealed class RangeSelectionFilterViewModel : ObservableObject, IDisposable
 {
     private readonly RangeSelectionFilterModel _model;
+    
     public RangeSelectionFilterViewModel(RangeSelectionFilterModel model)
     {
         _model = model;
-        model.PropertyChanged += (_, args) => OnPropertyChanged(args.PropertyName);
+        model.PropertyChanged += OnModelPropertyChanged;
     }
-    
+
+    private void OnModelPropertyChanged(object? _, PropertyChangedEventArgs args)
+    {
+        OnPropertyChanged(args.PropertyName);
+    }
+
+    public void Dispose()
+    {
+        _model.PropertyChanged -= OnModelPropertyChanged;
+    }
+
     public int From
     {
         get => _model.From;
@@ -59,10 +72,9 @@ public sealed class RangeSelectionFilterViewModel : ObservableObject
 
 public sealed partial class RangeSelectionFilterUserControl : UserControl
 {
-    private RangeSelectionFilterViewModel _viewModel;
     public RangeSelectionFilterUserControl(RangeSelectionFilterViewModel viewModel)
     {
-        _viewModel = viewModel;
+        DataContext = viewModel;
         InitializeComponent();
     }
 }

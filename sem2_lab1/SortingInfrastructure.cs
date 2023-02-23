@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using lab1.Forms;
@@ -33,7 +34,8 @@ public interface ISortDisplay
 
 public interface ISelectionFilter
 {
-    void EnableUi(Panel viewport);
+    void EnableUi(Panel viewport, FrameworkElement itemsRoot);
+    void DisableUi(Panel viewport, FrameworkElement itemsRoot);
     IEnumerable<int> GetEnabledIndices();
 }
 
@@ -98,102 +100,5 @@ public sealed class SelectionSortAlgorithm : ISortingAlgorithm
     public async Task Sort<T>(SortingContext<T> context)
     {
         await SortingImplementations.SelectionSort(context);
-    }
-}
-
-public enum SelectionFilterKind
-{
-    Range,
-    Arbitrary,
-}
-
-public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind, ISelectionFilter>
-{
-    private readonly SelectionFilterKind[] _keys;
-    private readonly IGetter<RangeSelectionFilterModel> _rangeModel;
-    
-    public SelectionFilterFactory(
-        IGetter<RangeSelectionFilterModel> rangeModel)
-    {
-        _rangeModel = rangeModel;
-        _keys = (SelectionFilterKind[]) Enum.GetValues(typeof(SelectionFilterKind));
-    }
-
-    public IEnumerable<SelectionFilterKind> GetKeys() => _keys;
-    public ISelectionFilter GetService(SelectionFilterKind key)
-    {
-        switch (key)
-        {
-            case SelectionFilterKind.Range:
-                return new RangeSelectionFilter(_rangeModel.GetRequired());
-            case SelectionFilterKind.Arbitrary:
-                return new ArbitrarySelectionFilter();
-            default:
-                throw new ArgumentOutOfRangeException(nameof(key), key, null);
-        }
-    }
-}
-
-public sealed class RangeSelectionFilter : ISelectionFilter
-{
-    private RangeSelectionFilterModel _model;
-
-    public RangeSelectionFilter(RangeSelectionFilterModel model)
-    {
-        _model = model;
-    }
-    
-    public void EnableUi(Panel viewport)
-    {
-        var vm = new RangeSelectionFilterViewModel(_model);
-        var view = new RangeSelectionFilterUserControl(vm);
-        viewport.Children.Add(view);
-    }
-
-    public IEnumerable<int> GetEnabledIndices()
-    {
-        for (int i = _model.From; i <= _model.To; i++)
-            yield return i;
-    }
-}
-
-public sealed class ArbitrarySelectionFilter : ISelectionFilter
-{
-    public void EnableUi(Panel viewport)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IEnumerable<int> GetEnabledIndices()
-    {
-        throw new NotImplementedException();
-    }
-}
-
-public sealed class SortDisplay : ISortDisplay
-{
-    public Task BeginSwap(int index0, int index1)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task EndSwap(int index0, int index1)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task RecordComparison(int index0, int index1, int comparisonResult)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task RecordIteration()
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task Reset()
-    {
-        throw new NotImplementedException();
     }
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using Shared;
 
 namespace Laborator1;
@@ -42,13 +43,22 @@ public sealed class ItemCountObservableValue : IObservableValue<int>
 {
     private IItems? _items;
 
-    public ItemCountObservableValue(IObservableValue<IItems> items)
+    public ItemCountObservableValue(IObservableValue<IItems> itemsProp)
     {
-        items.ValueChanged += OnItemsChanged;
-        OnItemsChanged(items.Get());
+        itemsProp.ValueChanged += OnItemsChanged;
+        ResetItems(itemsProp.Get());
     }
 
     private void OnItemsChanged(IItems? items)
+    {
+        bool itemsWereNotSet = _items is null;
+        Debug.Assert(!ReferenceEquals(items, _items));
+        ResetItems(items);
+        if (itemsWereNotSet)
+            OnCountChanged(items!.List.Count);
+    }
+
+    private void ResetItems(IItems? items)
     {
         _items = items;
         if (items is not null)
@@ -82,7 +92,7 @@ public sealed class ItemsData<T> : IItems
         while (Items.Count < newSize)
             Items.Add(NewItemFactory.Get());
         while (Items.Count > newSize)
-            Items.RemoveAt(Items.Count);
+            Items.RemoveAt(Items.Count - 1);
         
         CountChanged?.Invoke(newSize);
     }

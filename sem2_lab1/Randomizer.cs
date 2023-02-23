@@ -15,6 +15,15 @@ public interface IRandomGetter<out T> : IGetter<T>
 {
 }
 
+// Customizing this requires extracting the constants into separate properties
+// on all of the view models, and making new view models responsible for each item
+// in the item list. It's good enough as is.
+public static class Ranges
+{
+    public const int Min = 0;
+    public const int Max = 100;
+}
+
 public sealed class RandomIntGetter : IRandomGetter<int>
 {
     private readonly Random _random;
@@ -26,7 +35,7 @@ public sealed class RandomIntGetter : IRandomGetter<int>
 
     public int Get()
     {
-        return _random.Next();
+        return (_random.Next() - Ranges.Min) % (Ranges.Min - Ranges.Max) + Ranges.Min;
     }
 }
 
@@ -41,7 +50,7 @@ public sealed class RandomFloatGetter : IRandomGetter<float>
 
     public float Get()
     {
-        return (float) _random.NextDouble();
+        return (float) _random.NextDouble() * (Ranges.Max - Ranges.Min) + Ranges.Min;
     }
 }
 

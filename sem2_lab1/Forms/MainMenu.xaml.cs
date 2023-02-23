@@ -77,8 +77,8 @@ public sealed class MainMenuModel : ObservableObject
     public IObservableValue<ISelectionFilter> SelectionFilterProvider => _data.SelectionFilterProvider!;
     public IObservableValue<ISortDisplay> SortDisplayProvider => _data.SortDisplayProvider!;
     public IObservableValue<ISortDisplay> ItemsObservable => _data.SortDisplayProvider!;
+    public event Action BeforeItemsChanged;
 
-    
     public ISortingAlgorithm? SortingAlgorithm
     {
         get => SortingAlgorithmProvider.Get();
@@ -154,6 +154,8 @@ public sealed class MainMenuModel : ObservableObject
     
     public void SetItems((ItemKind itemKind, IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer, IShuffle shuffle, ISortingService sortingService)? t)
     {
+        BeforeItemsChanged?.Invoke();
+        
         if (t.HasValue)
         {
             var v = t.Value;
@@ -174,7 +176,7 @@ public sealed class MainMenuModel : ObservableObject
             _data.Shuffle = null;
             _data.ItemKind = null;
         }
-
+        
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(Randomizer));
         OnPropertyChanged(nameof(ItemKind));
@@ -438,6 +440,10 @@ public sealed class MainMenuViewModel : ObservableObject
                 
                 case nameof(MainMenuModel.Items):
                     OnPropertyChanged(nameof(ItemsCollection));
+                    OnPropertyChanged(nameof(AreItemsInitialized));
+                    OnPropertyChanged(nameof(CanStartSorting));
+                    OnPropertyChanged(nameof(ItemCount));
+                    OnPropertyChanged(nameof(CanShuffle));
                     break;
 
                 case nameof(MainMenuModel.SortingTask):
@@ -485,8 +491,12 @@ public sealed class MainMenuViewModel : ObservableObject
         get => _model.ItemKind;
         set => _service.SelectItemKind(value);
     }
-    
-    public int ItemCount => _model.Items?.List.Count ?? 0;
+
+    public int ItemCount
+    {
+        get => _model.Items?.List.Count ?? 0;
+        set => _model.Items?.ResizeArray(value);
+    }
     
     public IEnumerable? ItemsCollection => _model.Items?.List;
 }
@@ -505,23 +515,24 @@ public sealed partial class MainMenu : Window
         service.Model.SelectionFilterProvider.ValueChanged += selectionFilter =>
         {
             FilterPanel.Children.Clear();
-            selectionFilter?.EnableUi(FilterPanel);
+            selectionFilter?.EnableUi(FilterPanel, new FrameworkElement());
+        };
+        
+        service.Model.BeforeItemsChanged += () =>
+        {
+            ItemsList.ItemsSource = null;
         };
 
         service.Model.PropertyChanged += (_, e) =>
         {
             switch (e.PropertyName)
             {
-                case nameof(MainMenuModel.Items):
-                {
-                    ItemsList.ItemsSource = null;
-                    break;
-                }
                 case nameof(MainMenuModel.ItemKind):
                 {
                     var itemKind = viewModel.ItemKind;
                     if (itemKind is null)
                         return;
+                    
                     ItemsList.ItemTemplate = (DataTemplate) ItemsList.Resources[itemKind.Value.ToString()];
                     ItemsList.ItemsSource = viewModel.ItemsCollection;
                     break;

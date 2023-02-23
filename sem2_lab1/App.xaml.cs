@@ -56,6 +56,9 @@ public sealed partial class App : Application
         services.AddScoped<RangeSelectionFilterModel>(
             sp => new RangeSelectionFilterModel(
                 sp.GetRequiredService<ItemCountObservableValue>()));
+        services.AddScoped<ArbitrarySelectionFilterModel>(
+            sp => new ArbitrarySelectionFilterModel(
+                sp.GetRequiredService<ItemCountObservableValue>()));
 
         services.AddScoped<IGetter<RangeSelectionFilterModel>, ValueGetter<RangeSelectionFilterModel>>();
 
@@ -65,9 +68,11 @@ public sealed partial class App : Application
         
         var serviceProvider = services.BuildServiceProvider();
 
-        using var scope = serviceProvider.CreateScope();
+        var scope = serviceProvider.CreateScope();
         var mainMenu = scope.ServiceProvider.GetRequiredService<MainMenu>();
         mainMenu.Show();
+        
+        mainMenu.Closed += (_, _) => scope.Dispose();
     }
 }
 
