@@ -92,23 +92,29 @@
                 >
                     <ItemsControl.Resources>
                         <DataTemplate x:Key="String">
-                            <TextBlock Text="{Binding Mode=OneTime}" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding Mode=OneTime}" />
+                            </StackPanel>
                         </DataTemplate>
                         <DataTemplate x:Key="Int">
-                            <ProgressBar 
-                                Value="{Binding Mode=OneTime}" 
-                                Minimum="0" 
-                                Maximum="100"
-                                Height="20"
-                            />
+                            <StackPanel>
+                                <ProgressBar 
+                                    Value="{Binding Mode=OneTime}" 
+                                    Minimum="0" 
+                                    Maximum="100"
+                                    Height="20"
+                                />
+                            </StackPanel>
                         </DataTemplate>
                         <DataTemplate x:Key="Float">
-                            <ProgressBar 
-                                Value="{Binding Mode=OneTime}" 
-                                Minimum="0" 
-                                Maximum="100"
-                                Height="20"
-                            />
+                            <StackPanel>
+                                <ProgressBar 
+                                    Value="{Binding Mode=OneTime}" 
+                                    Minimum="0" 
+                                    Maximum="100"
+                                    Height="20"
+                                />
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsControl.Resources>
                 </ItemsControl>

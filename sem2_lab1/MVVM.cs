@@ -1,8 +1,6 @@
 ﻿using System;
-using Microsoft.Toolkit.Mvvm.ComponentModel;
 
 namespace Laborator1;
-
 
 public interface IGetter<out T>
 {

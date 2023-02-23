@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media.Media3D;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 
@@ -23,7 +22,7 @@ public struct MainMenuModelData
     
     // Selection filters work with indices.
     public IObservableRepo<ISelectionFilter>? SelectionFilterProvider;
-    public SelectionFilterKind? SelectionFilterKind;
+    public SelectionFilterKind SelectionFilterKind;
     
     public IObservableRepo<IItems>? ItemsObservableValue;
     public ItemKind? ItemKind;
@@ -34,6 +33,7 @@ public struct MainMenuModelData
     public IItemRandomizer? ItemRandomizer;
     public ISortingService? SortingService;
     public IShuffle? Shuffle;
+    public IObservableRepo<IListItemSwapper>? ListItemSwapperProvider;
     
     public IDirectionalComparer? DirectionalComparerDecorator;
     public SortDirection SortDirection;
@@ -53,7 +53,8 @@ public sealed class MainMenuModel : ObservableObject
         IObservableRepo<ISortDisplay> sortDisplayProvider,
         IObservableRepo<ISelectionFilter> selectionFilterProvider,
         IObservableRepo<IItems> itemsObservableValue,
-        IObservableValue<int> itemCountObservableValue)
+        IObservableValue<int> itemCountObservableValue,
+        IObservableRepo<IListItemSwapper> listItemSwapperProvider)
     {
         var itemStrings = new ObservableCollection<string>();
         _data = new()
@@ -64,6 +65,7 @@ public sealed class MainMenuModel : ObservableObject
             ItemsObservableValue = itemsObservableValue,
             ItemCountObservableValue = itemCountObservableValue,
             ItemStrings = itemStrings,
+            ListItemSwapperProvider = listItemSwapperProvider,
         };
 
         ItemsStringsFiller.Apply(itemStrings, itemsObservableValue);
@@ -72,12 +74,13 @@ public sealed class MainMenuModel : ObservableObject
     private IObservableRepo<ISortingAlgorithm> SortingAlgorithmRepo => _data.SortingAlgorithmProvider!;
     private IObservableRepo<ISelectionFilter> SelectionFilterRepo => _data.SelectionFilterProvider!;
     private IObservableRepo<ISortDisplay> SortDisplayRepo => _data.SortDisplayProvider!;
+    private IObservableRepo<IListItemSwapper> ListItemSwapperRepo => _data.ListItemSwapperProvider!;
     
     public IObservableValue<ISortingAlgorithm> SortingAlgorithmProvider => _data.SortingAlgorithmProvider!;
     public IObservableValue<ISelectionFilter> SelectionFilterProvider => _data.SelectionFilterProvider!;
     public IObservableValue<ISortDisplay> SortDisplayProvider => _data.SortDisplayProvider!;
     public IObservableValue<ISortDisplay> ItemsObservable => _data.SortDisplayProvider!;
-    public event Action BeforeItemsChanged;
+    public event Action? BeforeItemsChanged;
 
     public ISortingAlgorithm? SortingAlgorithm
     {
@@ -126,7 +129,7 @@ public sealed class MainMenuModel : ObservableObject
         // set => SetProperty(ref _data.SortingAlgorithmKind, value);
     }
 
-    public SelectionFilterKind? SelectionFilterKind
+    public SelectionFilterKind SelectionFilterKind
     {
         get => _data.SelectionFilterKind;
         // set => SetProperty(ref _data.SelectionFilterKind, value);
@@ -134,8 +137,8 @@ public sealed class MainMenuModel : ObservableObject
 
     public void SetSelectionFilter((SelectionFilterKind kind, ISelectionFilter filter)? t)
     {
-        _data.SelectionFilterKind = t?.kind ?? null;
-        SelectionFilterRepo.Set(t?.filter ?? null);
+        _data.SelectionFilterKind = t?.kind ?? SelectionFilterKind.None;
+        SelectionFilterRepo.Set(t?.filter);
         OnPropertyChanged(nameof(SelectionFilterKind));
         OnPropertyChanged(nameof(SelectionFilter));
     }
@@ -152,7 +155,7 @@ public sealed class MainMenuModel : ObservableObject
         // set => SetProperty(ref _data.Randomizer, value);
     }
     
-    public void SetItems((ItemKind itemKind, IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer, IShuffle shuffle, ISortingService sortingService)? t)
+    public void SetItems((ItemKind itemKind, IItems items, IItemRandomizer randomizer, IDirectionalComparer comparer, IShuffle shuffle, ISortingService sortingService, IListItemSwapper itemSwapper)? t)
     {
         BeforeItemsChanged?.Invoke();
         
@@ -166,6 +169,7 @@ public sealed class MainMenuModel : ObservableObject
             _data.Shuffle = v.shuffle;
             _data.ItemKind = v.itemKind;
             v.comparer.Direction = _data.SortDirection;
+            ListItemSwapperRepo.Set(v.itemSwapper);
         }
         else
         {
@@ -175,6 +179,7 @@ public sealed class MainMenuModel : ObservableObject
             _data.SortingService = null;
             _data.Shuffle = null;
             _data.ItemKind = null;
+            ListItemSwapperRepo.Set(null);
         }
         
         OnPropertyChanged(nameof(Items));
@@ -265,12 +270,12 @@ public sealed class MainMenuService
         Model.SetSortingAlgorithm(null);
     }
 
-    public void SelectSelectionFilter(SelectionFilterKind? kind)
+    public void SelectSelectionFilter(SelectionFilterKind kind)
     {
-        if (kind is null)
+        if (kind == SelectionFilterKind.None)
             ResetSelectionFilter();
         else
-            SelectFilter(kind.Value);
+            SelectFilter(kind);
     }
 
     public void SelectFilter(SelectionFilterKind kind)
@@ -319,11 +324,12 @@ public sealed class MainMenuService
             // Could realistically just use delegates, these would save some boilerplate.
             var randomizer = new ItemsRandomizer<T>(items, randomGetter);
             var shuffle = new Shuffler<T>(items);
-            
+            var swapper = new ListItemSwapper<T>(items);
+
             var comparer = new DirectionalComparerDecorator<T>(Comparer<T>.Default);
             var service = new SortingService<T>(items, Model.SortingAlgorithmProvider, Model.SortDisplayProvider, Model.SelectionFilterProvider, comparer);
 
-            Model.SetItems((itemKind, items, randomizer, comparer, shuffle, service));
+            Model.SetItems((itemKind, items, randomizer, comparer, shuffle, service, swapper));
         }
 
         switch (itemKind)
@@ -465,9 +471,9 @@ public sealed class MainMenuViewModel : ObservableObject
         set => _service.SelectAlgorithm(value);
     }
     public IEnumerable<SelectionFilterKind> SelectionFilterKinds => _service.SelectionFilterFactory.GetKeys();
-    public string FilterName => _model.SelectionFilterKind?.ToString() ?? "None";
-    public bool IsFilterSelected => _model.SelectionFilterKind is not null;
-    public SelectionFilterKind? SelectionFilterKind
+    public string FilterName => _model.SelectionFilterKind.ToString();
+    public bool IsFilterSelected => _model.SelectionFilterKind != SelectionFilterKind.None;
+    public SelectionFilterKind SelectionFilterKind
     {
         get => _model.SelectionFilterKind;
         set => _service.SelectSelectionFilter(value);
@@ -503,14 +509,15 @@ public sealed class MainMenuViewModel : ObservableObject
 
 public sealed partial class MainMenu : Window
 {
-    private MainMenuViewModel _viewModel;
+    private MainMenuViewModel ViewModel => (MainMenuViewModel) DataContext;
     private readonly MainMenuService _service;
+    private readonly ISortingUiEventsProvider _sortingUiEvents;
 
-    public MainMenu(MainMenuViewModel viewModel, MainMenuService service)
+    public MainMenu(MainMenuViewModel viewModel, MainMenuService service, ISortingUiEventsProvider sortingUiEvents)
     {
         _service = service;
-        _viewModel = viewModel;
-        DataContext = _viewModel;
+        _sortingUiEvents = sortingUiEvents;
+        DataContext = viewModel;
         
         service.Model.SelectionFilterProvider.ValueChanging += (before, after) =>
         {
@@ -529,12 +536,16 @@ public sealed partial class MainMenu : Window
             {
                 case nameof(MainMenuModel.ItemKind):
                 {
-                    var itemKind = viewModel.ItemKind;
+                    var itemKind = ViewModel.ItemKind;
                     if (itemKind is null)
                         return;
                     
                     ItemsList.ItemTemplate = (DataTemplate) ItemsList.Resources[itemKind.Value.ToString()];
-                    ItemsList.ItemsSource = viewModel.ItemsCollection;
+                    ItemsList.ItemsSource = ViewModel.ItemsCollection;
+                    
+                    // We're good to update the binding now that the ItemsList bound to the new items source.
+                    _sortingUiEvents.Bind((INotifyCollectionChanged) ViewModel.ItemsCollection!);
+                    
                     break;
                 }
             }

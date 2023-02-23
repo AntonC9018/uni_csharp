@@ -23,7 +23,9 @@ public sealed partial class App : Application
         var services = new ServiceCollection();
         services.AddSingleton<IKeyedProvider<SortingAlgorithmKind, ISortingAlgorithm>>(SortingAlgorithmFactory.Instance);
         services.AddScoped<IKeyedProvider<SelectionFilterKind, ISelectionFilter>, SelectionFilterFactory>();
-        services.AddScoped<ISortDisplay, SortDisplay>();
+        services.AddScoped<ISortDisplay>(sp => new SortDisplay(
+            sp.GetRequiredService<IObservableValue<IListItemSwapper>>(),
+            animationDelay: TimeSpan.FromMilliseconds(500)));
 
         void AddObservable<T>(ServiceCollection s)
         {
@@ -38,6 +40,7 @@ public sealed partial class App : Application
         AddObservable<ISortingAlgorithm>(services);
         AddObservable<ISortDisplay>(services);
         AddObservable<ISelectionFilter>(services);
+        AddObservable<IListItemSwapper>(services);
         
         services.AddScoped(sp => new MainMenuModel(
             // Autofac would've been able to fill these in, in the default framework I have to do this manually.
@@ -46,7 +49,8 @@ public sealed partial class App : Application
             sp.GetRequiredService<ObservableValue<ISelectionFilter>>(),
             sp.GetRequiredService<ObservableValue<IItems>>(),
             
-            sp.GetRequiredService<ItemCountObservableValue>()));
+            sp.GetRequiredService<ItemCountObservableValue>(),
+            sp.GetRequiredService<ObservableValue<IListItemSwapper>>()));
         services.AddScoped<MainMenuService>();
 
         services.AddScoped<MainMenuViewModel>();
@@ -61,10 +65,12 @@ public sealed partial class App : Application
                 sp.GetRequiredService<ItemCountObservableValue>()));
 
         services.AddScoped<IGetter<RangeSelectionFilterModel>, ValueGetter<RangeSelectionFilterModel>>();
+        services.AddScoped<IGetter<ArbitrarySelectionFilterModel>, ValueGetter<ArbitrarySelectionFilterModel>>();
 
         services.AddScoped<IRandomGetter<int>, RandomIntGetter>();
         services.AddScoped<IRandomGetter<float>, RandomFloatGetter>();
         services.AddScoped<IRandomGetter<string>, RandomStringGetter>();
+        services.AddScoped<ISortingUiEventsProvider, SortingUiEventsProvider>();
         
         var serviceProvider = services.BuildServiceProvider();
 

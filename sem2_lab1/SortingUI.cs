@@ -1,20 +1,21 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Media;
 using lab1.Forms;
-using Microsoft.Toolkit.Mvvm.ComponentModel;
 
 namespace Laborator1;
 
 
 public enum SelectionFilterKind
 {
+    None,
     Range,
     Arbitrary,
 }
@@ -24,13 +25,16 @@ public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind,
     private readonly SelectionFilterKind[] _keys;
     private readonly IGetter<RangeSelectionFilterModel> _rangeModel;
     private readonly IGetter<ArbitrarySelectionFilterModel> _arbitraryModel;
+    private readonly ISortingUiEventsProvider _eventsProvider;
     
     public SelectionFilterFactory(
         IGetter<RangeSelectionFilterModel> rangeModel,
-        IGetter<ArbitrarySelectionFilterModel> arbitraryModel)
+        IGetter<ArbitrarySelectionFilterModel> arbitraryModel,
+        ISortingUiEventsProvider eventsProvider)
     {
         _rangeModel = rangeModel;
         _arbitraryModel = arbitraryModel;
+        _eventsProvider = eventsProvider;
         _keys = (SelectionFilterKind[]) Enum.GetValues(typeof(SelectionFilterKind));
     }
 
@@ -42,7 +46,7 @@ public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind,
             case SelectionFilterKind.Range:
                 return new RangeSelectionFilter(_rangeModel.GetRequired());
             case SelectionFilterKind.Arbitrary:
-                return new ArbitrarySelectionFilter(_arbitraryModel.GetRequired());
+                return new ArbitrarySelectionFilter(_arbitraryModel.GetRequired(), _eventsProvider);
             default:
                 throw new ArgumentOutOfRangeException(nameof(key), key, null);
         }
@@ -80,73 +84,140 @@ public sealed class RangeSelectionFilter : ISelectionFilter
     }
 }
 
-public class ArbitrarySelectionFilterModel
+public interface ISortingUiEventsProvider
 {
-    private ObservableCollection<bool> _checkedStates = new();
+    event NotifyCollectionChangedEventHandler? ItemsUIChanged;
+    void Bind(INotifyCollectionChanged items);
+}
 
-    public ArbitrarySelectionFilterModel(IObservableValue<int> itemCount)
+public class SortingUiEventsProvider : ISortingUiEventsProvider
+{
+    public event NotifyCollectionChangedEventHandler? ItemsUIChanged;
+
+    private NotifyCollectionChangedEventHandler _handler;
+
+    public SortingUiEventsProvider()
     {
-        itemCount.ValueChanged += OnItemCountChanged;
+        _handler = OnItemsUIChanged;
     }
     
-    private void OnItemCountChanged(int v)
+    public void OnItemsUIChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        while (_checkedStates.Count < v)
-            _checkedStates.Add(true);
-        while (_checkedStates.Count > v)
-            _checkedStates.RemoveAt(_checkedStates.Count - 1);
+        ItemsUIChanged?.Invoke(this, e);
     }
     
-    public IEnumerable<int> SelectedIndices
+    // Effectively moves the event handler to the end of the invocation list.
+    public void Bind(INotifyCollectionChanged items)
     {
-        get
-        {
-            for (int i = 0; i < _checkedStates.Count; i++)
-            {
-                if (_checkedStates[i])
-                    yield return i;
-            }
-        }
+        items.CollectionChanged += _handler;
     }
-    
-    public ObservableCollection<bool> CheckedStates => _checkedStates;
 }
 
 public sealed class ArbitrarySelectionFilter : ISelectionFilter
 {
     private readonly ArbitrarySelectionFilterModel _model;
+    private readonly ISortingUiEventsProvider _eventsProvider;
+    private FrameworkElement? _itemsRoot;
 
-    public ArbitrarySelectionFilter(ArbitrarySelectionFilterModel model)
+    public ArbitrarySelectionFilter(ArbitrarySelectionFilterModel model, ISortingUiEventsProvider eventsProvider)
     {
         _model = model;
+        _eventsProvider = eventsProvider;
     }
 
     public void EnableUi(Panel viewport, FrameworkElement itemsRoot)
     {
+        _itemsRoot = itemsRoot;
+        _eventsProvider.ItemsUIChanged += OnItemsUIChanged;
     }
     
     public void DisableUi(Panel viewport, FrameworkElement itemsRoot)
     {
+        _eventsProvider.ItemsUIChanged -= OnItemsUIChanged;
+    }
+    
+    private void OnItemsUIChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // If any element in the array has changed, then the corresponding control
+        // in the ItemsControl has been changed. We have to find it and add a checkbox to it,
+        // bound to the corresponding element in _model.CheckedStates.
+        
+        void AddCheckBox(int index)
+        {
+            var child = VisualTreeHelper.GetChild(_itemsRoot!, index);
+            var childPanel = (StackPanel) child;
+            
+            var checkBox = new CheckBox();
+            checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{index}]") {Source = _model.CheckedStates});
+            checkBox.HorizontalAlignment = HorizontalAlignment.Left;
+            checkBox.VerticalAlignment = VerticalAlignment.Center;
+            checkBox.Margin = new Thickness(0, 0, 0, 0);
+            checkBox.Width = 20;
+            checkBox.Height = 20;
+            // The position of the checkbox must be to the left of the itemControl.
+            childPanel.Children.Insert(0, checkBox);
+        }
+
+        CheckBox GetCheckbox(int index)
+        {
+            var child = VisualTreeHelper.GetChild(_itemsRoot!, index);
+            var childPanel = (StackPanel) child;
+            var checkBox = childPanel.Children.OfType<CheckBox>().First();
+            return checkBox;
+        }
+
+        void ResetCheckboxBinding(int atIndex, int toIndex)
+        {
+            var checkBox = GetCheckbox(atIndex);
+            BindingOperations.ClearBinding(checkBox, ToggleButton.IsCheckedProperty);
+            checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{toIndex}]") {Source = _model.CheckedStates});
+        }
+        
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+            {
+                for (int i = 0; i < e.NewItems!.Count; i++)
+                    AddCheckBox(i + e.NewStartingIndex);
+                break;
+            }
+            case NotifyCollectionChangedAction.Remove:
+            {
+                for (int i = 0; i < e.OldItems!.Count; i++)
+                    _model.CheckedStates.RemoveAt(e.OldStartingIndex);
+                for (int i = e.OldStartingIndex; i < _model.CheckedStates.Count; i++)
+                    ResetCheckboxBinding(i, i);
+                break;
+            }
+            case NotifyCollectionChangedAction.Replace:
+            {
+                break;
+            }
+            case NotifyCollectionChangedAction.Move:
+            {
+                // The order of the items in the ItemsControl has changed.
+                // We have to move the corresponding checkboxes.
+                var fromIndex = e.OldStartingIndex;
+                var toIndex = e.NewStartingIndex;
+                var count = e.NewItems!.Count;
+                var checkBox = GetCheckbox(fromIndex);
+                _model.CheckedStates.RemoveAt(fromIndex);
+                _model.CheckedStates.Insert(toIndex, (bool) checkBox.IsChecked!);
+                for (int i = 0; i < count; i++)
+                    ResetCheckboxBinding(fromIndex + i, toIndex + i);
+                break;
+            }
+            case NotifyCollectionChangedAction.Reset:
+            {
+                // ig all items are recreated in this case, so we have to recreate all checkboxes.
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(_itemsRoot!); i++)
+                    AddCheckBox(i);
+                break;
+            }
+        }
     }
 
     public IEnumerable<int> GetEnabledIndices() => _model.SelectedIndices;
-}
-
-public class ArbitrarySelectionFilterView
-{
-    private ArbitrarySelectionFilterModel _model;
-    private FrameworkElement _itemsRoot;
-
-    public ArbitrarySelectionFilterView(ArbitrarySelectionFilterModel model, ItemsControl items)
-    {
-        _model = model;
-    }
-
-    public IEnumerable<bool> CheckedStates => _model.CheckedStates;
-
-    private void OnItemChanged()
-    {
-    }
 }
 
 public interface IListItemSwapper
@@ -154,13 +225,26 @@ public interface IListItemSwapper
     void Swap(int index0, int index1);
 }
 
+public sealed class ListItemSwapper<T> : IListItemSwapper
+{
+    private readonly ItemsData<T> _items;
+    public ListItemSwapper(ItemsData<T> items)
+    {
+        _items = items;
+    }
+    public void Swap(int index0, int index1)
+    {
+        var arr = _items.Items;
+        (arr[index0], arr[index1]) = (arr[index1], arr[index0]);
+    }
+}
+
 public sealed class SortDisplay : ISortDisplay
 {
-    // The 
-    private readonly IListItemSwapper _swapper;
+    private readonly IGetter<IListItemSwapper> _swapper;
     private readonly TimeSpan _animationDelay;
 
-    public SortDisplay(IListItemSwapper swapper, TimeSpan animationDelay)
+    public SortDisplay(IGetter<IListItemSwapper> swapper, TimeSpan animationDelay)
     {
         _swapper = swapper;
         _animationDelay = animationDelay;
@@ -173,7 +257,7 @@ public sealed class SortDisplay : ISortDisplay
 
     public Task EndSwap(int index0, int index1)
     {
-        _swapper.Swap(index0, index1);
+        _swapper.GetRequired().Swap(index0, index1);
         return Task.CompletedTask;
     }
 
