@@ -141,12 +141,9 @@ public sealed class ArbitrarySelectionFilter : ISelectionFilter
         // If any element in the array has changed, then the corresponding control
         // in the ItemsControl has been changed. We have to find it and add a checkbox to it,
         // bound to the corresponding element in _model.CheckedStates.
-        
-        void AddCheckBox(int index)
+
+        void CreateCheckBox(StackPanel panel, int index)
         {
-            var child = VisualTreeHelper.GetChild(_itemsRoot!, index);
-            var childPanel = (StackPanel) child;
-            
             var checkBox = new CheckBox();
             checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{index}]") {Source = _model.CheckedStates});
             checkBox.HorizontalAlignment = HorizontalAlignment.Left;
@@ -155,65 +152,34 @@ public sealed class ArbitrarySelectionFilter : ISelectionFilter
             checkBox.Width = 20;
             checkBox.Height = 20;
             // The position of the checkbox must be to the left of the itemControl.
-            childPanel.Children.Insert(0, checkBox);
+            panel.Children.Insert(0, checkBox);
         }
 
-        CheckBox GetCheckbox(int index)
-        {
-            var child = VisualTreeHelper.GetChild(_itemsRoot!, index);
-            var childPanel = (StackPanel) child;
-            var checkBox = childPanel.Children.OfType<CheckBox>().First();
-            return checkBox;
-        }
+        var items = (ItemsControl) _itemsRoot!;
 
-        void ResetCheckboxBinding(int atIndex, int toIndex)
+        int index = 0;
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(_itemsRoot!); i++)
         {
-            var checkBox = GetCheckbox(atIndex);
+            var child = VisualTreeHelper.GetChild(_itemsRoot!, i);
+            if (child is not StackPanel panel)
+                continue;
+            
+            var checkBox = panel.Children.OfType<CheckBox>().FirstOrDefault();
+            if (checkBox is null)
+            {
+                CreateCheckBox(panel, index);
+                continue;
+            }
+            
+            // Check if the binding property has the correct index
+            var binding = (Binding) checkBox.GetBindingExpression(ToggleButton.IsCheckedProperty)!.ParentBinding;
+            if ((int) binding.Path.PathParameters[0] == index)
+                continue;
+            
             BindingOperations.ClearBinding(checkBox, ToggleButton.IsCheckedProperty);
-            checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{toIndex}]") {Source = _model.CheckedStates});
-        }
-        
-        switch (e.Action)
-        {
-            case NotifyCollectionChangedAction.Add:
-            {
-                for (int i = 0; i < e.NewItems!.Count; i++)
-                    AddCheckBox(i + e.NewStartingIndex);
-                break;
-            }
-            case NotifyCollectionChangedAction.Remove:
-            {
-                for (int i = 0; i < e.OldItems!.Count; i++)
-                    _model.CheckedStates.RemoveAt(e.OldStartingIndex);
-                for (int i = e.OldStartingIndex; i < _model.CheckedStates.Count; i++)
-                    ResetCheckboxBinding(i, i);
-                break;
-            }
-            case NotifyCollectionChangedAction.Replace:
-            {
-                break;
-            }
-            case NotifyCollectionChangedAction.Move:
-            {
-                // The order of the items in the ItemsControl has changed.
-                // We have to move the corresponding checkboxes.
-                var fromIndex = e.OldStartingIndex;
-                var toIndex = e.NewStartingIndex;
-                var count = e.NewItems!.Count;
-                var checkBox = GetCheckbox(fromIndex);
-                _model.CheckedStates.RemoveAt(fromIndex);
-                _model.CheckedStates.Insert(toIndex, (bool) checkBox.IsChecked!);
-                for (int i = 0; i < count; i++)
-                    ResetCheckboxBinding(fromIndex + i, toIndex + i);
-                break;
-            }
-            case NotifyCollectionChangedAction.Reset:
-            {
-                // ig all items are recreated in this case, so we have to recreate all checkboxes.
-                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(_itemsRoot!); i++)
-                    AddCheckBox(i);
-                break;
-            }
+            checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{index}]") {Source = _model.CheckedStates});
+
+            index++;
         }
     }
 
