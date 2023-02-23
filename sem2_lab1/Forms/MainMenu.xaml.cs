@@ -512,10 +512,10 @@ public sealed partial class MainMenu : Window
         _viewModel = viewModel;
         DataContext = _viewModel;
         
-        service.Model.SelectionFilterProvider.ValueChanged += selectionFilter =>
+        service.Model.SelectionFilterProvider.ValueChanging += (before, after) =>
         {
-            FilterPanel.Children.Clear();
-            selectionFilter?.EnableUi(FilterPanel, new FrameworkElement());
+            before?.DisableUi(FilterPanel, ItemsList);
+            after?.EnableUi(FilterPanel, ItemsList);
         };
         
         service.Model.BeforeItemsChanged += () =>

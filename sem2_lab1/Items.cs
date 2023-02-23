@@ -73,6 +73,12 @@ public sealed class ItemCountObservableValue : IObservableValue<int>
     public int Value => _items?.List.Count ?? 0;
     public event Action<int>? ValueChanged;
     public int Get() => Value;
+    
+    public event Action<int, int>? ValueChanging
+    {
+        add => throw new NotImplementedException();
+        remove => throw new NotImplementedException();
+    }
 }
 
 public sealed class ItemsData<T> : IItems

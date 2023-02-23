@@ -14,12 +14,17 @@ public interface IChangedEvent<out T>
     event Action<T?> ValueChanged;
 }
 
+public interface IChangingEvent<out T>
+{
+    event Action<T?, T?> ValueChanging;
+}
+
 public interface ISetter<in T>
 {
     void Set(T? value);
 }
 
-public interface IObservableValue<out T> : IGetter<T>, IChangedEvent<T>
+public interface IObservableValue<out T> : IGetter<T>, IChangedEvent<T>, IChangingEvent<T>
 {
 }
 
@@ -46,6 +51,7 @@ public sealed class ObservableValue<T> : IObservableRepo<T>
         get => _value;
         set
         {
+            ValueChanging?.Invoke(_value, value);
             _value = value;
             ValueChanged?.Invoke(value);
         }
@@ -54,6 +60,7 @@ public sealed class ObservableValue<T> : IObservableRepo<T>
     public event Action<T?>? ValueChanged;
     public void Set(T? value) => Value = value;
     public T? Get() => Value;
+    public event Action<T?, T?>? ValueChanging;
 }
 
 public sealed class ValueGetter<T> : IGetter<T>

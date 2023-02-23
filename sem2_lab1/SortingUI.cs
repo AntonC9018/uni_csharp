@@ -149,30 +149,46 @@ public class ArbitrarySelectionFilterView
     }
 }
 
+public interface IListItemSwapper
+{
+    void Swap(int index0, int index1);
+}
+
 public sealed class SortDisplay : ISortDisplay
 {
-    public Task BeginSwap(int index0, int index1)
+    // The 
+    private readonly IListItemSwapper _swapper;
+    private readonly TimeSpan _animationDelay;
+
+    public SortDisplay(IListItemSwapper swapper, TimeSpan animationDelay)
     {
-        throw new NotImplementedException();
+        _swapper = swapper;
+        _animationDelay = animationDelay;
+    }
+
+    public async Task BeginSwap(int index0, int index1)
+    {
+        await Task.Delay(_animationDelay);
     }
 
     public Task EndSwap(int index0, int index1)
     {
-        throw new NotImplementedException();
+        _swapper.Swap(index0, index1);
+        return Task.CompletedTask;
     }
 
     public Task RecordComparison(int index0, int index1, int comparisonResult)
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     public Task RecordIteration()
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     public Task Reset()
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 }
