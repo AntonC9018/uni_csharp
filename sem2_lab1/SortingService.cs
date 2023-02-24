@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Laborator1;
 
 public interface ISortingService
 {
-    Task StartSorting();
+    Task StartSorting(CancellationToken token);
 }
 
 // Used to invoke the sorting algorithm
@@ -32,7 +33,7 @@ public sealed class SortingService<T> : ISortingService
         _comparer = comparer;
     }
 
-    public Task StartSorting()
+    public Task StartSorting(CancellationToken token)
     {
         var selectionFilter = _selectionFilter.Get();
         var sortDisplay = _sortDisplay.GetRequired();
@@ -62,6 +63,7 @@ public sealed class SortingService<T> : ISortingService
             Display = sortDisplay,
             Items = itemsCopy,
             Comparer = _comparer,
+            CancellationToken = token,
         };
         
         return algorithm.Sort(context);
@@ -79,12 +81,10 @@ public sealed class RemappingSortDisplay : ISortDisplay
         _indices = indices;
     }
 
-    public Task Reset() => _display.Reset();
-    public Task RecordIteration() => _display.RecordIteration();
-    public Task RecordComparison(int index0, int index1, int comparisonResult)
-        => _display.RecordComparison(_indices[index0], _indices[index1], comparisonResult);
-    public Task BeginSwap(int index0, int index1)
-        => _display.BeginSwap(_indices[index0], _indices[index1]);
-    public Task EndSwap(int index0, int index1)
-        => _display.EndSwap(_indices[index0], _indices[index1]);
+    public Task Reset(CancellationToken token) => _display.Reset(token);
+    public Task RecordIteration(CancellationToken token) => _display.RecordIteration(token);
+    public Task RecordComparison(int index0, int index1, int comparisonResult, CancellationToken token)
+        => _display.RecordComparison(_indices[index0], _indices[index1], comparisonResult, token);
+    public Task Swap(int index0, int index1, CancellationToken token)
+        => _display.Swap(_indices[index0], _indices[index1], token);
 }

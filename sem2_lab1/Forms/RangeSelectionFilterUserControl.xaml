@@ -17,8 +17,8 @@
             ShowRange="True"
             Minimum="0" 
             Maximum="{Binding Count, Mode=OneWay}" 
-            RangeStart="{Binding From}"
-            RangeEnd="{Binding To}"
+            RangeStart="{Binding From, Mode=TwoWay}"
+            RangeEnd="{Binding To, Mode=TwoWay}"
             ShowValueLabels="True"
             
         />

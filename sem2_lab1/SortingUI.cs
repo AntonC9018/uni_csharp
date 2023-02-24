@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -53,14 +54,14 @@ public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind,
 public sealed class RangeSelectionFilter : ISelectionFilter
 {
     private readonly RangeSelectionFilterModel _model;
-    private RangeSelectionFilterViewModel _viewModel;
+    private RangeSelectionFilterViewModel? _viewModel;
 
     public RangeSelectionFilter(RangeSelectionFilterModel model)
     {
         _model = model;
     }
     
-    public void EnableUi(Panel viewport, FrameworkElement itemsRoot)
+    public void EnableUi(Panel viewport, ItemsControl itemsRoot)
     {
         var vm = new RangeSelectionFilterViewModel(_model);
         var view = new RangeSelectionFilterUserControl(vm);
@@ -68,10 +69,10 @@ public sealed class RangeSelectionFilter : ISelectionFilter
         _viewModel = vm;
     }
     
-    public void DisableUi(Panel viewport, FrameworkElement itemsRoot)
+    public void DisableUi(Panel viewport, ItemsControl itemsRoot)
     {
         viewport.Children.Clear();
-        _viewModel.Dispose();
+        _viewModel!.Dispose();
     }
 
     public IEnumerable<int> GetEnabledIndices()
@@ -84,77 +85,37 @@ public sealed class RangeSelectionFilter : ISelectionFilter
 public sealed class ArbitrarySelectionFilter : ISelectionFilter
 {
     private readonly ArbitrarySelectionFilterModel _model;
-    private FrameworkElement? _itemsRoot;
+    private readonly EventHandler _itemsUiChangedHandler;
+    private ItemContainerGenerator? _itemsRootContainerGenerator;
 
     public ArbitrarySelectionFilter(ArbitrarySelectionFilterModel model)
     {
         _model = model;
+        _itemsUiChangedHandler = OnItemsUiChanged;
     }
 
-    public void EnableUi(Panel viewport, FrameworkElement itemsRoot)
+    public void EnableUi(Panel viewport, ItemsControl itemsRoot)
     {
-        _itemsRoot = itemsRoot;
-        ((ItemsControl) itemsRoot).ItemContainerGenerator.StatusChanged += OnItemsUIChanged;
+        _itemsRootContainerGenerator = itemsRoot.ItemContainerGenerator;
+        itemsRoot.ItemContainerGenerator.StatusChanged += _itemsUiChangedHandler;
+        _itemsRootContainerGenerator.CreateOrRebindFilterCheckboxes(_model);
     }
     
-    public void DisableUi(Panel viewport, FrameworkElement itemsRoot)
+    public void DisableUi(Panel viewport, ItemsControl itemsRoot)
     {
-        ((ItemsControl) itemsRoot).ItemContainerGenerator.StatusChanged += OnItemsUIChanged;
+        itemsRoot.ItemContainerGenerator.StatusChanged -= _itemsUiChangedHandler;
+        _itemsRootContainerGenerator!.RemoveFilterCheckboxes();
     }
     
-    private void OnItemsUIChanged(object? sender, EventArgs e)
-    {
-        // If any element in the array has changed, then the corresponding control
-        // in the ItemsControl has been changed. We have to find it and add a checkbox to it,
-        // bound to the corresponding element in _model.CheckedStates.
-
-        void CreateCheckBox(StackPanel panel, int index)
-        {
-            var checkBox = new CheckBox();
-            checkBox.HorizontalAlignment = HorizontalAlignment.Left;
-            checkBox.VerticalAlignment = VerticalAlignment.Center;
-            checkBox.Margin = new Thickness(0, 0, 0, 0);
-            checkBox.Width = 20;
-            checkBox.Height = 20;
-            // The position of the checkbox must be to the left of the itemControl.
-            panel.Children.Insert(0, checkBox);
-            SetBinding(checkBox, index);
-        }
-
-        void SetBinding(CheckBox checkBox, int index)
-        {
-            var binding = new Binding($"[{index}]") {Source = _model.CheckedStates};
-            checkBox.SetBinding(ToggleButton.IsCheckedProperty, binding);
-        }
-        
-        var items = (ItemsControl) _itemsRoot!;
-        var g = items.ItemContainerGenerator;
-        if (g.Status != GeneratorStatus.ContainersGenerated)
-            return;
-
-        for (int i = 0; i < g.Items.Count; i++)
-        {
-            var child = (Visual) g.ContainerFromIndex(i);
-            var stackPanel = child.SelfAndDescendants().OfType<StackPanel>().First();
-            var checkBox = stackPanel.Descendats().OfType<CheckBox>().FirstOrDefault();
-            if (checkBox is null)
-            {
-                CreateCheckBox(stackPanel, i);
-                continue;
-            }
-            
-            // Check if the binding property has the correct index
-            var binding = (Binding) checkBox.GetBindingExpression(ToggleButton.IsCheckedProperty)!.ParentBinding;
-            var pathParams = binding.Path.PathParameters;
-            if (pathParams.Count > 0 && (int) pathParams[0] == i)
-                continue;
-
-            BindingOperations.ClearBinding(checkBox, ToggleButton.IsCheckedProperty);
-            SetBinding(checkBox, i);
-        }
-    }
-
     public IEnumerable<int> GetEnabledIndices() => _model.SelectedIndices;
+
+    private void OnItemsUiChanged(object? sender, EventArgs e)
+    {
+        // FIXME: very bad performance for larger collections.
+        var g = _itemsRootContainerGenerator!;
+        if (g.Status == GeneratorStatus.ContainersGenerated)
+            g.CreateOrRebindFilterCheckboxes(_model);
+    }
 }
 
 // http://drwpf.com/blog/2008/07/20/itemscontrol-g-is-for-generator/
@@ -211,28 +172,23 @@ public sealed class SortDisplay : ISortDisplay
         _animationDelay = animationDelay;
     }
 
-    public async Task BeginSwap(int index0, int index1)
+    public async Task Swap(int index0, int index1, CancellationToken token)
     {
-        await Task.Delay(_animationDelay);
-    }
-
-    public Task EndSwap(int index0, int index1)
-    {
+        await Task.Delay(_animationDelay, token);
         _swapper.GetRequired().Swap(index0, index1);
-        return Task.CompletedTask;
     }
 
-    public Task RecordComparison(int index0, int index1, int comparisonResult)
+    public Task RecordComparison(int index0, int index1, int comparisonResult, CancellationToken token)
     {
         return Task.CompletedTask;
     }
 
-    public Task RecordIteration()
+    public Task RecordIteration(CancellationToken token)
     {
         return Task.CompletedTask;
     }
 
-    public Task Reset()
+    public Task Reset(CancellationToken token)
     {
         return Task.CompletedTask;
     }

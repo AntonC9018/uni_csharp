@@ -27,18 +27,27 @@ public sealed partial class App : Application
             sp.GetRequiredService<IObservableValue<IListItemSwapper>>(),
             animationDelay: TimeSpan.FromMilliseconds(500)));
 
-        void AddObservable<T>(ServiceCollection s)
+        void AddObservable<T>(ServiceCollection s, Func<IServiceProvider, ObservableValue<T>>? factory = null)
         {
             s.AddScoped<IObservableValue<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
             s.AddScoped<IObservableRepo<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
             s.AddScoped<IGetter<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
             s.AddScoped<ISetter<T>>(sp => sp.GetRequiredService<ObservableValue<T>>());
-            s.AddScoped<ObservableValue<T>, ObservableValue<T>>();
+            if (factory is not null)
+                s.AddScoped(factory);
+            else
+                s.AddScoped<ObservableValue<T>>();
         }
         
         AddObservable<IItems>(services);
         AddObservable<ISortingAlgorithm>(services);
-        AddObservable<ISortDisplay>(services);
+        AddObservable<ISortDisplay>(services, sp =>
+        {
+            var sd = new ObservableValue<ISortDisplay>();
+            var sortDisplay = sp.GetRequiredService<ISortDisplay>();
+            sd.Value = sortDisplay;
+            return sd;
+        });
         AddObservable<ISelectionFilter>(services);
         AddObservable<IListItemSwapper>(services);
         
@@ -48,7 +57,6 @@ public sealed partial class App : Application
             sp.GetRequiredService<ObservableValue<ISortDisplay>>(),
             sp.GetRequiredService<ObservableValue<ISelectionFilter>>(),
             sp.GetRequiredService<ObservableValue<IItems>>(),
-            
             sp.GetRequiredService<ItemCountObservableValue>(),
             sp.GetRequiredService<ObservableValue<IListItemSwapper>>()));
         services.AddScoped<MainMenuService>();

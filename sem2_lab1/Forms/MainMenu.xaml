@@ -20,12 +20,17 @@
             <MenuItem
                 Header="_Randomize"
                 Click="Randomize"
-                IsEnabled="{Binding IsAlgorithmSelected}"
+                IsEnabled="{Binding CanRandomize}"
                 />
             <MenuItem
                 Header="_Shuffle"
                 Click="Shuffle"
                 IsEnabled="{Binding CanShuffle}"
+                />
+            <MenuItem
+                Header="_Cancel Sorting"
+                Click="CancelSorting"
+                IsEnabled="{Binding CanCancelSorting}"
                 />
         </Menu>
         <StackPanel
@@ -92,27 +97,39 @@
                 >
                     <ItemsControl.Resources>
                         <DataTemplate x:Key="String">
-                            <StackPanel>
+                            <StackPanel
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Stretch"
+                                >
                                 <TextBlock Text="{Binding Mode=OneTime}" />
                             </StackPanel>
                         </DataTemplate>
                         <DataTemplate x:Key="Int">
-                            <StackPanel>
+                            <StackPanel 
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Stretch"
+                                >
                                 <ProgressBar 
                                     Value="{Binding Mode=OneTime}" 
                                     Minimum="0" 
                                     Maximum="100"
-                                    Height="20"
+                                    Height="7"
+                                    Width="100"
                                 />
                             </StackPanel>
                         </DataTemplate>
                         <DataTemplate x:Key="Float">
-                            <StackPanel>
+                            <StackPanel
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Stretch"
+                                >
                                 <ProgressBar 
                                     Value="{Binding Mode=OneTime}" 
                                     Minimum="0" 
                                     Maximum="100"
-                                    Height="20"
+                                    Height="7"
+                                    Width="100"
+                                    HorizontalAlignment="Stretch"
                                 />
                             </StackPanel>
                         </DataTemplate>

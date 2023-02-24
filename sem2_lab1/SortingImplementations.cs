@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 namespace Laborator1;
@@ -6,23 +7,25 @@ public static class SortingImplementations
 {
     private sealed class _InternalSortContext<T>
     {
-        public SortingContext<T> Context;
+        private readonly SortingContext<T> _context;
 
-        public ListSegment<T?> WholeSpan => new(Context.Items);
+        public ListSegment<T?> WholeSpan => new(_context.Items);
         public int StartIndex;
         public int SpanLength;
         public ListSegment<T?> Span => WholeSpan.Slice(StartIndex, SpanLength);
+        public bool IsOperationCancelled => _context.CancellationToken.IsCancellationRequested;
 
         public _InternalSortContext(SortingContext<T> context)
         {
-            Context = context;
+            _context = context;
             SpanLength = WholeSpan.Length;
             StartIndex = 0;
         }
 
         public Task StartIteration()
         {
-            return Context.Display.RecordIteration();
+            _context.CancellationToken.ThrowIfCancellationRequested();
+            return _context.Display.RecordIteration(_context.CancellationToken);
         }
 
         public Task SwapLocal(int localIndex0, int localIndex1)
@@ -37,15 +40,19 @@ public static class SortingImplementations
 
         public async Task Swap(int index0, int index1)
         {
-            await Context.Display.BeginSwap(index0, index1);
+            _context.CancellationToken.ThrowIfCancellationRequested();
+            if (index0 == index1)
+                return;
+            
+            await _context.Display.Swap(index0, index1, _context.CancellationToken);
             WholeSpan.Swap(index0, index1);
-            await Context.Display.EndSwap(index0, index1);
         }
 
         public async Task<int> Compare(int index0, int index1)
         {
-            int comparisonResult = Context.Comparer.Compare(WholeSpan[index0], WholeSpan[index1]);
-            await Context.Display.RecordComparison(index0, index1, comparisonResult);
+            _context.CancellationToken.ThrowIfCancellationRequested();
+            int comparisonResult = _context.Comparer.Compare(WholeSpan[index0], WholeSpan[index1]);
+            await _context.Display.RecordComparison(index0, index1, comparisonResult, _context.CancellationToken);
             return comparisonResult;
         }
     } 
@@ -58,12 +65,11 @@ public static class SortingImplementations
         for (int leftIndex = 0; leftIndex < lastIndex; leftIndex++)
         {
             if (await context.CompareLocal(leftIndex, lastIndex) < 0)
-            {   
+            {
                 await context.SwapLocal(pivotIndex, leftIndex);
                 pivotIndex++;
             }
         }
-
         await context.SwapLocal(context.Span.Length - 1, pivotIndex);
 
         return pivotIndex;
@@ -77,7 +83,6 @@ public static class SortingImplementations
         await context.StartIteration();
 
         int partitionIndex = await quick_partition(context);
-
         int ownStart = context.StartIndex;
         int ownLength = context.SpanLength;
         {
@@ -100,6 +105,8 @@ public static class SortingImplementations
     // Interprets SpanLength as the length to consider,
     // and the StartIndex as the current index.
     // So doing `.Span` is invalid in this function.
+    // ReSharper disable once InconsistentNaming
+    // ReSharper disable once IdentifierTypo
     private static async Task heapify<T>(_InternalSortContext<T> context)
     {
         await context.StartIteration();

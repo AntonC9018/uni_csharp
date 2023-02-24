@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using lab1.Forms;
 
 namespace Laborator1;
 
@@ -16,6 +14,7 @@ public struct SortingContext<T>
     public ISortDisplay Display;
     public IList<T?> Items;
     public IComparer<T> Comparer;
+    public CancellationToken CancellationToken;
 }
 
 public interface ISortingAlgorithm
@@ -25,17 +24,16 @@ public interface ISortingAlgorithm
 
 public interface ISortDisplay
 {
-    Task Reset();
-    Task RecordIteration();
-    Task RecordComparison(int index0, int index1, int comparisonResult);
-    Task BeginSwap(int index0, int index1);
-    Task EndSwap(int index0, int index1);
+    Task Reset(CancellationToken token);
+    Task RecordIteration(CancellationToken token);
+    Task RecordComparison(int index0, int index1, int comparisonResult, CancellationToken token);
+    Task Swap(int index0, int index1, CancellationToken token);
 }
 
 public interface ISelectionFilter
 {
-    void EnableUi(Panel viewport, FrameworkElement itemsRoot);
-    void DisableUi(Panel viewport, FrameworkElement itemsRoot);
+    void EnableUi(Panel viewport, ItemsControl itemsRoot);
+    void DisableUi(Panel viewport, ItemsControl itemsRoot);
     IEnumerable<int> GetEnabledIndices();
 }
 
@@ -66,6 +64,7 @@ public sealed class SortingAlgorithmFactory : IKeyedProvider<SortingAlgorithmKin
         _algorithms[(int) SortingAlgorithmKind.Quick] = QuickSortAlgorithm.Instance;
         _algorithms[(int) SortingAlgorithmKind.Heap] = HeapSortAlgorithm.Instance;
         _algorithms[(int) SortingAlgorithmKind.Selection] = SelectionSortAlgorithm.Instance;
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         Debug.Assert(_algorithms.All(x => x is not null));
     }
 

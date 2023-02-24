@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,7 @@ public struct MainMenuModelData
     public SortDirection SortDirection;
     
     public Task? SortingTask;
+    public CancellationTokenSource? SortingCts;
 
     public IObservableValue<int>? ItemCountObservableValue;
     public ObservableCollection<string> ItemStrings;
@@ -201,7 +203,34 @@ public sealed class MainMenuModel : ObservableObject
     public Task? SortingTask
     {
         get => _data.SortingTask;
-        set => SetProperty(ref _data.SortingTask, value);
+        // set => SetProperty(ref _data.SortingTask, value);
+    }
+
+    public void SetSorting((Task SortingTask, CancellationTokenSource cts)? sorting)
+    {
+        if (sorting.HasValue)
+        {
+            if (IsSorting)
+                throw new InvalidOperationException("Sorting started while sorting is already in progress");
+
+            var v = sorting.Value;
+            _data.SortingTask = v.SortingTask;
+            _data.SortingCts = v.cts;
+        }
+        else
+        {
+            if (_data.SortingTask is null)
+                return;
+            
+            _data.SortingTask = null;
+
+            _data.SortingCts?.Cancel();
+            _data.SortingCts?.Dispose();
+            _data.SortingCts = null;
+        }
+        
+        OnPropertyChanged(nameof(SortingTask));
+        OnPropertyChanged(nameof(IsSorting));
     }
 
     public ISortingService? SortingService
@@ -213,12 +242,7 @@ public sealed class MainMenuModel : ObservableObject
     {
         get => _data.SortingTask is null ? false : !_data.SortingTask.IsCompleted;
     }
-
-    public void OnSortingStateChanged()
-    {
-        OnPropertyChanged(nameof(IsSorting));
-    }
-
+    
     public ItemKind? ItemKind
     {
         get => _data.ItemKind;
@@ -369,17 +393,19 @@ public sealed class MainMenuService
         var service = Model.SortingService;
         Debug.Assert(service is not null);
 
-        var task = service.StartSorting();
-        Model.SortingTask = task;
-        Model.OnSortingStateChanged();
-
         try
         {
+            var cts = new CancellationTokenSource();
+            var task = service.StartSorting(cts.Token);
+            Model.SetSorting((task, cts));
             await task;
+        }
+        catch (OperationCanceledException)
+        {
         }
         finally
         {
-            Model.OnSortingStateChanged();
+            Model.SetSorting(null);
         }
     }
 
@@ -394,6 +420,12 @@ public sealed class MainMenuService
         Debug.Assert(Model.Items is not null);
         Debug.Assert(Model.Shuffle is not null);
         Model.Shuffle.Shuffle();
+    }
+
+    public void CancelSorting()
+    {
+        Debug.Assert(Model.IsSorting);
+        Model.SetSorting(null);
     }
 }
 
@@ -442,6 +474,10 @@ public sealed class MainMenuViewModel : ObservableObject
                 case nameof(MainMenuModel.IsSorting):
                     OnPropertyChanged(nameof(IsSortingInProgress));
                     OnPropertyChanged(nameof(IsSortingNotInProgress));
+                    OnPropertyChanged(nameof(CanShuffle));
+                    OnPropertyChanged(nameof(CanStartSorting));
+                    OnPropertyChanged(nameof(CanCancelSorting));
+                    OnPropertyChanged(nameof(CanRandomize));
                     return;
                 
                 case nameof(MainMenuModel.Items):
@@ -450,6 +486,7 @@ public sealed class MainMenuViewModel : ObservableObject
                     OnPropertyChanged(nameof(CanStartSorting));
                     OnPropertyChanged(nameof(ItemCount));
                     OnPropertyChanged(nameof(CanShuffle));
+                    OnPropertyChanged(nameof(CanRandomize));
                     break;
 
                 case nameof(MainMenuModel.SortingTask):
@@ -487,7 +524,7 @@ public sealed class MainMenuViewModel : ObservableObject
 
     public bool AreItemsInitialized => _model.Items is not null; 
     public bool CanStopSorting => IsSortingInProgress;
-    public bool CanShuffle => AreItemsInitialized && _service.IsSortingNotInProgress;
+    public bool CanShuffle => AreItemsInitialized && IsSortingNotInProgress;
     public bool CanInitializeItems => !AreItemsInitialized;
 
     public IEnumerable<ItemKind> ItemKinds => _ItemKinds;
@@ -505,6 +542,8 @@ public sealed class MainMenuViewModel : ObservableObject
     }
     
     public IEnumerable? ItemsCollection => _model.Items?.List;
+    public bool CanCancelSorting => IsSortingInProgress;
+    public bool CanRandomize => AreItemsInitialized && IsSortingNotInProgress;
 }
 
 public sealed partial class MainMenu : Window
@@ -562,5 +601,10 @@ public sealed partial class MainMenu : Window
     public void Shuffle(object sender, RoutedEventArgs e)
     {
         _service.Shuffle();
+    }
+
+    public void CancelSorting(object sender, RoutedEventArgs e)
+    {
+        _service.CancelSorting();
     }
 }
