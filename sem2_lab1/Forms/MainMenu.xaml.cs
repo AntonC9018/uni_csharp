@@ -511,12 +511,10 @@ public sealed partial class MainMenu : Window
 {
     private MainMenuViewModel ViewModel => (MainMenuViewModel) DataContext;
     private readonly MainMenuService _service;
-    private readonly ISortingUiEventsProvider _sortingUiEvents;
 
-    public MainMenu(MainMenuViewModel viewModel, MainMenuService service, ISortingUiEventsProvider sortingUiEvents)
+    public MainMenu(MainMenuViewModel viewModel, MainMenuService service)
     {
         _service = service;
-        _sortingUiEvents = sortingUiEvents;
         DataContext = viewModel;
         
         service.Model.SelectionFilterProvider.ValueChanging += (before, after) =>
@@ -542,9 +540,6 @@ public sealed partial class MainMenu : Window
                     
                     ItemsList.ItemTemplate = (DataTemplate) ItemsList.Resources[itemKind.Value.ToString()];
                     ItemsList.ItemsSource = ViewModel.ItemsCollection;
-                    
-                    // We're good to update the binding now that the ItemsList bound to the new items source.
-                    _sortingUiEvents.Bind((INotifyCollectionChanged) ViewModel.ItemsCollection!);
                     
                     break;
                 }

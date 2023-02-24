@@ -25,16 +25,13 @@ public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind,
     private readonly SelectionFilterKind[] _keys;
     private readonly IGetter<RangeSelectionFilterModel> _rangeModel;
     private readonly IGetter<ArbitrarySelectionFilterModel> _arbitraryModel;
-    private readonly ISortingUiEventsProvider _eventsProvider;
     
     public SelectionFilterFactory(
         IGetter<RangeSelectionFilterModel> rangeModel,
-        IGetter<ArbitrarySelectionFilterModel> arbitraryModel,
-        ISortingUiEventsProvider eventsProvider)
+        IGetter<ArbitrarySelectionFilterModel> arbitraryModel)
     {
         _rangeModel = rangeModel;
         _arbitraryModel = arbitraryModel;
-        _eventsProvider = eventsProvider;
         _keys = (SelectionFilterKind[]) Enum.GetValues(typeof(SelectionFilterKind));
     }
 
@@ -46,7 +43,7 @@ public sealed class SelectionFilterFactory : IKeyedProvider<SelectionFilterKind,
             case SelectionFilterKind.Range:
                 return new RangeSelectionFilter(_rangeModel.GetRequired());
             case SelectionFilterKind.Arbitrary:
-                return new ArbitrarySelectionFilter(_arbitraryModel.GetRequired(), _eventsProvider);
+                return new ArbitrarySelectionFilter(_arbitraryModel.GetRequired());
             default:
                 throw new ArgumentOutOfRangeException(nameof(key), key, null);
         }
@@ -84,59 +81,28 @@ public sealed class RangeSelectionFilter : ISelectionFilter
     }
 }
 
-public interface ISortingUiEventsProvider
-{
-    event NotifyCollectionChangedEventHandler? ItemsUIChanged;
-    void Bind(INotifyCollectionChanged items);
-}
-
-public class SortingUiEventsProvider : ISortingUiEventsProvider
-{
-    public event NotifyCollectionChangedEventHandler? ItemsUIChanged;
-
-    private NotifyCollectionChangedEventHandler _handler;
-
-    public SortingUiEventsProvider()
-    {
-        _handler = OnItemsUIChanged;
-    }
-    
-    public void OnItemsUIChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        ItemsUIChanged?.Invoke(this, e);
-    }
-    
-    // Effectively moves the event handler to the end of the invocation list.
-    public void Bind(INotifyCollectionChanged items)
-    {
-        items.CollectionChanged += _handler;
-    }
-}
-
 public sealed class ArbitrarySelectionFilter : ISelectionFilter
 {
     private readonly ArbitrarySelectionFilterModel _model;
-    private readonly ISortingUiEventsProvider _eventsProvider;
     private FrameworkElement? _itemsRoot;
 
-    public ArbitrarySelectionFilter(ArbitrarySelectionFilterModel model, ISortingUiEventsProvider eventsProvider)
+    public ArbitrarySelectionFilter(ArbitrarySelectionFilterModel model)
     {
         _model = model;
-        _eventsProvider = eventsProvider;
     }
 
     public void EnableUi(Panel viewport, FrameworkElement itemsRoot)
     {
         _itemsRoot = itemsRoot;
-        _eventsProvider.ItemsUIChanged += OnItemsUIChanged;
+        ((ItemsControl) itemsRoot).ItemContainerGenerator.StatusChanged += OnItemsUIChanged;
     }
     
     public void DisableUi(Panel viewport, FrameworkElement itemsRoot)
     {
-        _eventsProvider.ItemsUIChanged -= OnItemsUIChanged;
+        ((ItemsControl) itemsRoot).ItemContainerGenerator.StatusChanged += OnItemsUIChanged;
     }
     
-    private void OnItemsUIChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void OnItemsUIChanged(object? sender, EventArgs e)
     {
         // If any element in the array has changed, then the corresponding control
         // in the ItemsControl has been changed. We have to find it and add a checkbox to it,
@@ -145,7 +111,6 @@ public sealed class ArbitrarySelectionFilter : ISelectionFilter
         void CreateCheckBox(StackPanel panel, int index)
         {
             var checkBox = new CheckBox();
-            checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{index}]") {Source = _model.CheckedStates});
             checkBox.HorizontalAlignment = HorizontalAlignment.Left;
             checkBox.VerticalAlignment = VerticalAlignment.Center;
             checkBox.Margin = new Thickness(0, 0, 0, 0);
@@ -153,37 +118,67 @@ public sealed class ArbitrarySelectionFilter : ISelectionFilter
             checkBox.Height = 20;
             // The position of the checkbox must be to the left of the itemControl.
             panel.Children.Insert(0, checkBox);
+            SetBinding(checkBox, index);
         }
 
-        var items = (ItemsControl) _itemsRoot!;
-
-        int index = 0;
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(_itemsRoot!); i++)
+        void SetBinding(CheckBox checkBox, int index)
         {
-            var child = VisualTreeHelper.GetChild(_itemsRoot!, i);
-            if (child is not StackPanel panel)
-                continue;
-            
-            var checkBox = panel.Children.OfType<CheckBox>().FirstOrDefault();
+            var binding = new Binding($"[{index}]") {Source = _model.CheckedStates};
+            checkBox.SetBinding(ToggleButton.IsCheckedProperty, binding);
+        }
+        
+        var items = (ItemsControl) _itemsRoot!;
+        var g = items.ItemContainerGenerator;
+        if (g.Status != GeneratorStatus.ContainersGenerated)
+            return;
+
+        for (int i = 0; i < g.Items.Count; i++)
+        {
+            var child = (Visual) g.ContainerFromIndex(i);
+            var stackPanel = child.SelfAndDescendants().OfType<StackPanel>().First();
+            var checkBox = stackPanel.Descendats().OfType<CheckBox>().FirstOrDefault();
             if (checkBox is null)
             {
-                CreateCheckBox(panel, index);
+                CreateCheckBox(stackPanel, i);
                 continue;
             }
             
             // Check if the binding property has the correct index
             var binding = (Binding) checkBox.GetBindingExpression(ToggleButton.IsCheckedProperty)!.ParentBinding;
-            if ((int) binding.Path.PathParameters[0] == index)
+            var pathParams = binding.Path.PathParameters;
+            if (pathParams.Count > 0 && (int) pathParams[0] == i)
                 continue;
-            
-            BindingOperations.ClearBinding(checkBox, ToggleButton.IsCheckedProperty);
-            checkBox.SetBinding(ToggleButton.IsCheckedProperty, new Binding($"[{index}]") {Source = _model.CheckedStates});
 
-            index++;
+            BindingOperations.ClearBinding(checkBox, ToggleButton.IsCheckedProperty);
+            SetBinding(checkBox, i);
         }
     }
 
     public IEnumerable<int> GetEnabledIndices() => _model.SelectedIndices;
+}
+
+// http://drwpf.com/blog/2008/07/20/itemscontrol-g-is-for-generator/
+public static class HierarchyHelper
+{
+    public static IEnumerable<Visual> SelfAndDescendants(this Visual element)
+    {
+        yield return element;
+        foreach (var descendant in Descendats(element))
+            yield return descendant;
+    }
+    public static IEnumerable<Visual> Descendats(this Visual element)
+    {
+        if (element is FrameworkElement felement)
+            felement.ApplyTemplate();
+        
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+        {
+            var visual = (Visual) VisualTreeHelper.GetChild(element, i);
+            yield return visual;
+            foreach (var descendant in Descendats(visual))
+                yield return descendant;
+        }
+    }
 }
 
 public interface IListItemSwapper

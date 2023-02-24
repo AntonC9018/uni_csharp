@@ -70,7 +70,6 @@ public sealed partial class App : Application
         services.AddScoped<IRandomGetter<int>, RandomIntGetter>();
         services.AddScoped<IRandomGetter<float>, RandomFloatGetter>();
         services.AddScoped<IRandomGetter<string>, RandomStringGetter>();
-        services.AddScoped<ISortingUiEventsProvider, SortingUiEventsProvider>();
         
         var serviceProvider = services.BuildServiceProvider();
 
