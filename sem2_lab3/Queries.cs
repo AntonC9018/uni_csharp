@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Humanizer;
 
 namespace sem2_lab3;
 
@@ -12,6 +13,27 @@ public enum QueryResultKind
     MultipleSimpleValues,
     ComplexValue,
     MultipleComplexValues,
+}
+
+public static class StringHelper
+{
+    public static ReadOnlySpan<char> SliceOffFront(
+        this ReadOnlySpan<char> span, 
+        string prefix,
+        StringComparison comparison = StringComparison.CurrentCulture)
+    {
+        if (span.StartsWith(prefix, comparison))
+            return span[prefix.Length ..];
+        return span;
+    }
+    
+    public static string SliceOffFront(
+        this string str, 
+        string prefix,
+        StringComparison comparison = StringComparison.CurrentCulture)
+    {
+        return SliceOffFront(str.AsSpan(), prefix, comparison).ToString();
+    }
 }
 
 public static class Queries
@@ -46,8 +68,12 @@ public static class Queries
             }
 
             var kind = GetKind();
+
+            var name = m.Name
+                .SliceOffFront("Get", StringComparison.OrdinalIgnoreCase)
+                .Humanize(LetterCasing.Title);
             
-            return new QueryInfo(m.Name, kind, e =>
+            return new QueryInfo(name, kind, e =>
             {
                 object result = m.Invoke(null, new object[] { e })!;
                 switch (kind)
@@ -120,10 +146,10 @@ public static class Queries
     }
     
     // First name must start with J
-    public static IEnumerable<string> GetStudentNamesWhereFirstNameHasJ(IEnumerable<StudentModel> students)
+    public static IEnumerable<string> GetStudentNamesWhereFirstStartsWithJ(IEnumerable<StudentModel> students)
     {
         return from student in students
-            where student.FirstName.StartsWith("J", StringComparison.CurrentCultureIgnoreCase)
+            where student.FirstName?.StartsWith("J", StringComparison.CurrentCultureIgnoreCase) ?? false
             select GetFullName(student);
     }
     
@@ -131,7 +157,7 @@ public static class Queries
     public static IEnumerable<string> GetStudentNamesWhereLastNameHasOO(IEnumerable<StudentModel> students)
     {
         return from student in students
-            where student.LastName.Contains("OO", StringComparison.CurrentCultureIgnoreCase)
+            where student.LastName?.Contains("OO", StringComparison.CurrentCultureIgnoreCase) ?? false
             select GetFullName(student);
     }
     

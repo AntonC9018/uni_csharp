@@ -162,8 +162,8 @@ public partial class MainWindow : Window, IDisposable
             Refresh(() => new TextBlock
                 {
                     FontSize = 24,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Top
                 },
                 tb => tb.Text = text ?? "No results.");
         }
@@ -193,7 +193,7 @@ public partial class MainWindow : Window, IDisposable
             }
             case QueryResultKind.MultipleSimpleValues:
             {
-                if (MaybeNoResults((IEnumerable) r.Value!))
+                if (MaybeNoResults((IEnumerable) r.Value))
                     break;
                 Refresh(() => new ListBox
                     {
@@ -205,7 +205,7 @@ public partial class MainWindow : Window, IDisposable
             }
             case QueryResultKind.MultipleComplexValues:
             {
-                if (MaybeNoResults((IEnumerable) r.Value!))
+                if (MaybeNoResults((IEnumerable) r.Value))
                     break;
                 Refresh(() => new DataGrid
                     {

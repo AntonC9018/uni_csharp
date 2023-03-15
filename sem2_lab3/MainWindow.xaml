@@ -6,10 +6,10 @@
         xmlns:local="clr-namespace:sem2_lab3"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <StackPanel
-        VerticalAlignment="Stretch"
-        >
-        <Grid>
+    <DockPanel>
+        <Grid
+            DockPanel.Dock="Top"
+            >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -35,12 +35,13 @@
                 Grid.Column="3"/>
         </Grid>
         <ScrollViewer
+            DockPanel.Dock="Top"
             HorizontalAlignment="Stretch"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto"
             VerticalAlignment="Stretch"
         >
-            <StackPanel 
+            <StackPanel
                 Orientation="Horizontal"
                 >
                 <DataGrid
@@ -49,8 +50,9 @@
                     AutoGenerateColumns="true"/>
                 <StackPanel
                     Name="QueryResultView"
+                    VerticalAlignment="Stretch"
                     HorizontalAlignment="Stretch"/>
             </StackPanel>
         </ScrollViewer>
-    </StackPanel>
+    </DockPanel>
 </Window>
