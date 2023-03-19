@@ -1,0 +1,82 @@
+﻿@page "/"
+@using CalculatorLogic
+
+<PageTitle>Calculator</PageTitle>
+
+<div class="controls-grid" style="display: grid">
+    
+    <input @bind="DisplayString" style="
+        grid-row: 0 / span 1;
+        grid-column: 0 / span 5;
+        width: 100%;
+        height: 100%;"/>
+    
+    @for (int y = 0; y < Buttons.GetLength(0); y++)
+    {
+        @for (int x = 0; x < Buttons.GetLength(1); x++)
+        {
+            var button = Buttons[y, x];
+            if (button is null)
+                continue;
+
+            <div class="control" style="
+                grid-row: @(y + 2) / span @(button.Size.Rows);
+                grid-column: @(x + 1) / span @(button.Size.Cols);
+                width: 100%;
+                height: 100%;">
+                <button class="control-button" @onclick="() => button.Control.Operation(_state)">
+                    @button.Control.Text
+                </button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    CalculatorDataModel _state = new();
+
+    string DisplayString
+    {
+        get => _state.GetInputDisplayString();
+        set => _state.NumberInputModel.ReplaceWithString(value);
+    }
+    
+    record Button(Control Control, (int Rows, int Cols) Size);
+    
+    static readonly Button?[,] Buttons = GetButtons();
+
+    static Button?[,] GetButtons()
+    {
+        Button CreateButton(string controlText, (int, int)? size = null)
+        {
+            var control = BlazorFrontend.Registry.Controls[controlText];
+            return new Button(control, size ?? (1, 1));
+        }
+        
+        var buttons = new Button[5, 5];
+        buttons[0, 0] = CreateButton("<-");
+        buttons[0, 1] = CreateButton("CE");
+        buttons[0, 2] = CreateButton("C");
+        buttons[0, 3] = CreateButton("±");
+        buttons[0, 4] = CreateButton("√");
+        buttons[1, 0] = CreateButton("7");
+        buttons[1, 1] = CreateButton("8");
+        buttons[1, 2] = CreateButton("9");
+        buttons[1, 3] = CreateButton("/");
+        buttons[1, 4] = CreateButton("%");
+        buttons[2, 0] = CreateButton("4");
+        buttons[2, 1] = CreateButton("5");
+        buttons[2, 2] = CreateButton("6");
+        buttons[2, 3] = CreateButton("*");
+        buttons[2, 4] = CreateButton("1/x");
+        buttons[3, 0] = CreateButton("1");
+        buttons[3, 1] = CreateButton("2");
+        buttons[3, 2] = CreateButton("3");
+        buttons[3, 3] = CreateButton("-");
+        buttons[3, 4] = CreateButton("=", (2, 1));
+        buttons[4, 0] = CreateButton("0", (1, 2));
+        buttons[4, 2] = CreateButton(".");
+        buttons[4, 3] = CreateButton("+");
+        return buttons;
+    }
+}
