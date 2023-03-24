@@ -3,13 +3,17 @@
 
 <PageTitle>Calculator</PageTitle>
 
-<div class="controls-grid" style="display: grid">
+<div class="controls-grid" style="
+    display: grid;
+    grid-template-columns: repeat(@Buttons.GetLength(0), 1fr);">
     
-    <input @bind="DisplayString" style="
+    <div style="
+        display: table-cell;
         grid-row: 0 / span 1;
-        grid-column: 0 / span 5;
-        width: 100%;
-        height: 100%;"/>
+        grid-column: 0 / span 5;">
+        
+        <input type="text" @bind="DisplayString" style=""/>
+    </div>
     
     @for (int y = 0; y < Buttons.GetLength(0); y++)
     {
@@ -21,10 +25,9 @@
 
             <div class="control" style="
                 grid-row: @(y + 2) / span @(button.Size.Rows);
-                grid-column: @(x + 1) / span @(button.Size.Cols);
-                width: 100%;
-                height: 100%;">
-                <button class="control-button" @onclick="() => button.Control.Operation(_state)">
+                grid-column: @(x + 1) / span @(button.Size.Cols);">
+                
+                <button @onclick="() => button.Control.Operation(_state)">
                     @button.Control.Text
                 </button>
             </div>

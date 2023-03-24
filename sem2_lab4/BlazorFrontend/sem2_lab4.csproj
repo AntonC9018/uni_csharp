@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>BlazorFrontend</RootNamespace>
+    <ScopedCssEnabled>true</ScopedCssEnabled>
   </PropertyGroup>
 
   <ItemGroup>

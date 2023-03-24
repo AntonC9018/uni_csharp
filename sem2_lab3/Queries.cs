@@ -38,7 +38,7 @@ public static class StringHelper
 
 public static class Queries
 {
-    public record struct QueryInfo(string Name, QueryResultKind Kind, Func<IEnumerable<StudentModel>, object> Method);
+    public readonly record struct QueryInfo(string Name, QueryResultKind Kind, Func<IEnumerable<StudentModel>, object> Method);
     public static readonly QueryInfo[] QueryInfos = typeof(Queries)
         .GetMethods(BindingFlags.Static | BindingFlags.Public)
         .Select(m =>
