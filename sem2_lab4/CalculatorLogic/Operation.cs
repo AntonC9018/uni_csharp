@@ -41,6 +41,6 @@ public static class Registry
         yield return Operation.Create("/", (a, b) => a / b);
         yield return Operation.Create("√", Math.Sqrt);
         yield return Operation.Create("%", a => a * 100);
-        yield return Operation.Create("1/x", a => 1 / a);
+        yield return Operation.Create("x⁻¹", a => 1 / a);
     }
 }

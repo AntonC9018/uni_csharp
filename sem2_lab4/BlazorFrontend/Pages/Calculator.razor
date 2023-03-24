@@ -7,12 +7,25 @@
     display: grid;
     grid-template-columns: repeat(@Buttons.GetLength(0), 1fr);">
     
+    @* literally what is this cluster*uck *@
     <div style="
         display: table-cell;
-        grid-row: 0 / span 1;
-        grid-column: 0 / span 5;">
-        
-        <input type="text" @bind="DisplayString" style=""/>
+        white-space: nowrap;
+        grid-row: 1 / span 1;
+        grid-column: 1 / span 5;">
+        <div style="
+            float: left;
+            width: calc(100% - 20px)">
+            <input type="text" @bind="DisplayString" style=""/>
+        </div>
+        <div style="
+            display: flex;
+            float: left;
+            justify-content: center;
+            align-items: center;
+            width: 20px">
+            @_state.QueuedOperation?.Text
+        </div>
     </div>
     
     @for (int y = 0; y < Buttons.GetLength(0); y++)
@@ -27,7 +40,8 @@
                 grid-row: @(y + 2) / span @(button.Size.Rows);
                 grid-column: @(x + 1) / span @(button.Size.Cols);">
                 
-                <button @onclick="() => button.Control.Operation(_state)">
+                <button @onclick="() => button.Control.Operation(_state)" style="
+                    aspect-ratio: @(button.Size.Cols) / @(button.Size.Rows)">
                     @button.Control.Text
                 </button>
             </div>
@@ -37,13 +51,13 @@
 
 @code {
     CalculatorDataModel _state = new();
-
+    
     string DisplayString
     {
-        get => _state.GetInputDisplayString();
+        get => _state.GetInputDisplayString(); 
         set => _state.NumberInputModel.ReplaceWithString(value);
     }
-    
+
     record Button(Control Control, (int Rows, int Cols) Size);
     
     static readonly Button?[,] Buttons = GetButtons();
@@ -57,7 +71,7 @@
         }
         
         var buttons = new Button[5, 5];
-        buttons[0, 0] = CreateButton("<-");
+        buttons[0, 0] = CreateButton("←");
         buttons[0, 1] = CreateButton("CE");
         buttons[0, 2] = CreateButton("C");
         buttons[0, 3] = CreateButton("±");
@@ -71,7 +85,7 @@
         buttons[2, 1] = CreateButton("5");
         buttons[2, 2] = CreateButton("6");
         buttons[2, 3] = CreateButton("*");
-        buttons[2, 4] = CreateButton("1/x");
+        buttons[2, 4] = CreateButton("x⁻¹");
         buttons[3, 0] = CreateButton("1");
         buttons[3, 1] = CreateButton("2");
         buttons[3, 2] = CreateButton("3");

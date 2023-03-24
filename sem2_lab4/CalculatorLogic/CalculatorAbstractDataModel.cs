@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -6,7 +7,8 @@ namespace CalculatorLogic;
 
 public interface ICalculatorDataModel
 {
-    public double StoredNumber { get; set; }
+    [NotNullIfNotNull(nameof(QueuedOperation))]
+    public double? StoredNumber { get; set; }
     public INumberInputModel NumberInputModel { get; }
     public Operation? QueuedOperation { get; set; }
 }
@@ -34,4 +36,5 @@ public interface INumberInputModel
     IList<char> DigitsAfterDot { get; }
     bool IsSigned { get; set; }
     bool HasDot { get; set; }
+    bool HasBeenTouchedSinceFlushing { get; set; }
 }

@@ -44,11 +44,35 @@ public class NumericInputTests
     }
     
     [Fact]
+    public void GettingValueMultipleTimesDoesNotMutateTheInput()
+    {
+        _input.ReplaceWithString("12.34");
+        _input.GetDisplayString();
+        string value = _input.GetDisplayString();
+        Assert.Equal("12.34", value);
+    }
+    
+    [Fact]
     public void SettingFromString_MultipleTimes_SetsTheValueToLast()
     {
         _input.ReplaceWithString("12.34");
         _input.ReplaceWithString("56.78");
         string value = _input.GetDisplayString();
         Assert.Equal("56.78", value);
+    }
+
+    [Fact]
+    public void WritingDotDefaultsToZero()
+    {
+        _input.AddDot();
+        Assert.Equal("0.", _input.GetDisplayString());
+    }
+    
+    [Fact]
+    public void NoZerosInFront()
+    {
+        _input.AddDigit('0');
+        _input.AddDigit('0');
+        Assert.Equal("0", _input.GetDisplayString());
     }
 }

@@ -8,53 +8,58 @@ public static class InputMutations
 {
     public static void ApplyOperation(this ICalculatorDataModel c, Operation op)
     {
-        if (c.NumberInputModel.IsEmpty())
+        if (c.NumberInputModel.HasBeenTouchedSinceFlushing == false)
         {
             // (a +) --> (a -)
-            // Done first input previously, haven't started the second one yet,
-            // replace the binary operation.
             if (op.IsBinary)
             {
+                // Haven't started on the first input, default to 0
+                c.StoredNumber ??= 0;
                 c.QueuedOperation = op;
-                if (c.QueuedOperation is null)
-                    c.StoredNumber = 0;
                 return;
             }
             
             // (a +) --> (sqrt(a)) --> (b)
             // if (op.IsUnary)
             {
-                double a = c.QueuedOperation is null ? 0 : c.StoredNumber;
-                double result = op.GetResult(a);
+                double a = c.StoredNumber ?? 0;
+                double b = op.GetResult(a);
                 c.QueuedOperation = null;
-                c.StoredNumber = result;
+                c.StoredNumber = b;
                 return;
             }
         }
-
+        
         double currentValue = c.NumberInputModel.GetValue();
 
+        // (a + b) --> (a + sqrt(b)) --> (a + c) --> (d)
         if (op.IsUnary)
             currentValue = op.GetResult(currentValue);
         
+        // (a + b) --> (c)
         if (c.QueuedOperation is not null)
-            currentValue = c.QueuedOperation.GetResult(c.StoredNumber, currentValue);
+            currentValue = c.QueuedOperation.GetResult(c.StoredNumber!.Value, currentValue);
 
         c.StoredNumber = currentValue;
-        c.QueuedOperation = op.IsBinary ? op : null;
+        c.QueuedOperation = op.IsBinary ? op : null; // (c) --> (c *)
         c.NumberInputModel.Clear();
     }
-
+    
     public static void AddDigit(this INumberInputModel input, char digit)
     {
         if (input.HasDot)
             input.DigitsAfterDot.Add(digit);
+        else if (input.DigitsBeforeDot is ['0'])
+            input.DigitsBeforeDot[0] = digit;
         else
             input.DigitsBeforeDot.Add(digit);
+        
+        input.HasBeenTouchedSinceFlushing = true;
     }
 
     public static void AddDot(this INumberInputModel input)
     {
+        input.HasBeenTouchedSinceFlushing = true;
         input.HasDot = true;
 
         if (input.DigitsBeforeDot.Count == 0)
@@ -64,7 +69,8 @@ public static class InputMutations
     public static void ChangeSign(this INumberInputModel input)
     {
         input.IsSigned = !input.IsSigned;
-        
+        input.HasBeenTouchedSinceFlushing = true;
+
         if (input.DigitsBeforeDot.Count == 0)
             input.DigitsBeforeDot.Add('0');
     }
@@ -73,19 +79,19 @@ public static class InputMutations
     {
         c.NumberInputModel.Clear();
         c.QueuedOperation = null;
-        c.StoredNumber = 0;
+        c.StoredNumber = null;
     }
 
     public static void FlushInput(this ICalculatorDataModel c)
     {
-        if (c.NumberInputModel.IsEmpty())
+        if (c.NumberInputModel.HasBeenTouchedSinceFlushing == false)
             return;
         
         double currentValue = c.NumberInputModel.GetValue();
         c.NumberInputModel.Clear();
 
         if (c.QueuedOperation is not null)
-            currentValue = c.QueuedOperation.GetResult(c.StoredNumber, currentValue);
+            currentValue = c.QueuedOperation.GetResult(c.StoredNumber!.Value, currentValue);
         
         c.StoredNumber = currentValue;
         c.QueuedOperation = null;
@@ -93,7 +99,7 @@ public static class InputMutations
     
     public static void ClearLastInput(this INumberInputModel input)
     {
-        if (input.IsEmpty())
+        if (input.HasBeenTouchedSinceFlushing == false)
             return;
 
         if (input.HasDot)
@@ -105,17 +111,24 @@ public static class InputMutations
             }
 
             input.DigitsAfterDot.RemoveAt(input.DigitsAfterDot.Count - 1);
+            return;
         }
 
-        if (input.DigitsBeforeDot is [_])
-            input.DigitsBeforeDot[0] = '0';
-        else
-            input.DigitsBeforeDot.RemoveAt(input.DigitsBeforeDot.Count - 1);
+        if (input.DigitsBeforeDot.Count == 0)
+        {
+            Debug.Assert(input.IsSigned);
+            input.IsSigned = false;
+            return;
+        }
+
+        input.DigitsBeforeDot.RemoveAt(input.DigitsBeforeDot.Count - 1);
     }
     
     
     public static void Clear(this INumberInputModel input)
     {
+        input.HasBeenTouchedSinceFlushing = false;
+        input.HasDot = false;
         input.IsSigned = false;
         input.DigitsBeforeDot.Clear();
         input.DigitsAfterDot.Clear();
@@ -127,6 +140,8 @@ public static class InputMutations
         
         if (replacement.Length == 0)
             return;
+        
+        input.HasBeenTouchedSinceFlushing = true;
 
         if (replacement[0] == '-')
         {
@@ -149,20 +164,22 @@ public static class InputMutations
         {
             digitsBeforeDot = replacement;
         }
-        
+
         foreach (var digit in digitsBeforeDot)
+        {
+            if (input.DigitsBeforeDot.Count == 0 && digit == '0')
+                continue;
             input.DigitsBeforeDot.Add(digit);
+        }
+
+        if (input.DigitsBeforeDot.Count == 0)
+            input.DigitsBeforeDot.Add('0');
     }
 }
 
 
 public static class NumberInputHelper
 {
-    public static bool IsEmpty(this INumberInputModel input)
-    {
-        return input.DigitsBeforeDot.Count == 0;
-    }
-
     public static double GetValue(this INumberInputModel input)
     {
         double whole = 0;
@@ -191,23 +208,29 @@ public static class NumberInputHelper
     
     public static string GetDisplayString(this INumberInputModel input)
     {
-        if (input.IsEmpty())
-            return "0";
-
-        var sb = _StringBuilder;
-        if (input.IsSigned)
-            sb.Append('-');
-        foreach (var digit in input.DigitsBeforeDot)
-            sb.Append(digit);
+        if (input.HasBeenTouchedSinceFlushing == false)
+            return "";
         
-        if (input.HasDot)
+        var sb = _StringBuilder;
+        // Just in case there are multiple threads
+        lock (sb)
         {
-            sb.Append('.');
-            foreach (var digit in input.DigitsAfterDot)
+            if (input.IsSigned)
+                sb.Append('-');
+            foreach (var digit in input.DigitsBeforeDot)
                 sb.Append(digit);
+            
+            if (input.HasDot)
+            {
+                sb.Append('.');
+                foreach (var digit in input.DigitsAfterDot)
+                    sb.Append(digit);
+            }
+            
+            var result = sb.ToString();
+            sb.Clear();
+            return result;
         }
-
-        return sb.ToString();
     }
 }
 
@@ -215,8 +238,11 @@ public static class DisplayHelper
 {
     public static string GetInputDisplayString(this ICalculatorDataModel c)
     {
-        if (c.NumberInputModel.IsEmpty())
-            return c.StoredNumber.ToString(CultureInfo.InvariantCulture);
-        return c.NumberInputModel.GetDisplayString();
+        if (c.NumberInputModel.HasBeenTouchedSinceFlushing)
+            return c.NumberInputModel.GetDisplayString();
+        if (c.StoredNumber is null)
+            return "";
+        // G means ignore trailing zeros
+        return c.StoredNumber.Value.ToString("G", CultureInfo.InvariantCulture);
     }
 }

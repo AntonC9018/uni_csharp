@@ -19,7 +19,7 @@ public static class Registry
         foreach (var op in CalculatorLogic.Registry.Operations.Values)
             yield return Control.CreateOperationControl(op);
 
-        yield return new Control("<-", c => c.NumberInputModel.ClearLastInput());
+        yield return new Control("←", c => c.NumberInputModel.ClearLastInput());
         yield return new Control("=", c => c.FlushInput());
     }
 }

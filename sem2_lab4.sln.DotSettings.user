@@ -1,7 +1,16 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=a158a78e_002D6916_002D4d68_002Dbdac_002D4b06d18861cf/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="NumericInputTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=a158a78e_002D6916_002D4d68_002Dbdac_002D4b06d18861cf/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="NumericInputTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
     &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.NumericInputTests&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.CalculatorTests.MultiplicationTest&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.CalculatorTests.IntegrationTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b2d9910b_002Da89e_002D492b_002D9fd4_002D08a58aa2b6a8/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="WritingDotDefaultsToZero" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.NumericInputTests.WritingDotDefaultsToZero&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.CalculatorTests.IntegrationTest&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.CalculatorTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::ABB24BAF-F08C-4988-BA6A-DB8BE5284A58::net7.0::CalculatorLogic.Tests.NumericInputTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
