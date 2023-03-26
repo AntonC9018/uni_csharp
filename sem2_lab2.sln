@@ -1,0 +1,21 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "sem2_lab2", "sem2_lab2\sem2_lab2.csproj", "{0DD5E846-6761-43C9-8877-721B43576A84}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0DD5E846-6761-43C9-8877-721B43576A84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DD5E846-6761-43C9-8877-721B43576A84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DD5E846-6761-43C9-8877-721B43576A84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DD5E846-6761-43C9-8877-721B43576A84}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {001496AA-192D-44EB-909A-825D616F79C7}
+	EndGlobalSection
+EndGlobal

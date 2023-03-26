@@ -1,0 +1,43 @@
+﻿<Window x:Class="sem2_lab2.MainView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:sem2_lab2"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <DockPanel>
+        <StackPanel 
+            DockPanel.Dock="Top" 
+            Orientation="Vertical"
+            >
+            <ListView ItemsSource="{Binding SelectedCollectionNamedValues}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn 
+                            Header="PropertyName" 
+                            DisplayMemberBinding="{Binding DisplayName, Mode=OneWay}"
+                            />
+                        <GridViewColumn 
+                            Header="Value" 
+                            DisplayMemberBinding="{Binding Value, Mode=OneWay}"
+                            />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            
+            <ComboBox
+                ItemsSource="{Binding CollectionNames}" 
+                SelectedIndex="{Binding SelectedCollectionIndex}"
+            />
+        </StackPanel>
+        <StackPanel 
+            VerticalAlignment="Bottom" 
+            MaxHeight="30"
+            Height="30"
+            >
+            <Label Content="Collection: "/>
+            <Label Content="{Binding CurrentCollectionName}"/>
+        </StackPanel>
+    </DockPanel>
+</Window>
