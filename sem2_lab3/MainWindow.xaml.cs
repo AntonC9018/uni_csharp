@@ -54,12 +54,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public MainWindowViewModel(ClassroomDataModel model)
     {
         Model = model;
-        model.StudentsChangedInAnyWay += RerunCurrentQuery;
+        model.StudentsChangedInAnyWay += AutoRerunCurrentQuery;
     }
 
     public void Dispose()
     {
-        Model.StudentsChangedInAnyWay -= RerunCurrentQuery;
+        Model.StudentsChangedInAnyWay -= AutoRerunCurrentQuery;
     }
 
     partial void OnSelectedQueryIndexChanged(int? value)
@@ -95,11 +95,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (SelectedQueryIndex is null)
             return;
-        if (!AutoRerun)
-            return;
         var qinfo = Queries.QueryInfos[SelectedQueryIndex.Value];
         var query = qinfo.Method;
         QueryResult = new(qinfo.Kind, query(Model.Students));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRerunCurrentQuery))]
+    private void AutoRerunCurrentQuery()
+    {
+        if (!AutoRerun)
+            return;
+        RerunCurrentQuery();
     }
     
     public bool CanRerunCurrentQuery => SelectedQueryIndex is not null;
