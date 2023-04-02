@@ -1,0 +1,11 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=bd3309d9_002Da0cb_002D4e30_002Da0f2_002Daa58f67f94b7/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="AnonymousClassOverloadEqualsOperator" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::3FCBE31E-A6C7-4342-B62E-DBAD220F4B59::net7.0::code.GroupByTests.GroupBy_WithSimpleKey_DefaultComparison&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::3FCBE31E-A6C7-4342-B62E-DBAD220F4B59::net7.0::code.GroupByTests.GroupBy_ComplexKey_DefaultComparison&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::3FCBE31E-A6C7-4342-B62E-DBAD220F4B59::net7.0::code.GroupByTests.GroupBy_ComplexKeyOtherThanAnonymousObject&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::3FCBE31E-A6C7-4342-B62E-DBAD220F4B59::net7.0::code.GroupByTests.GroupBy_KeyThatImplementsDifferentEquals&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::3FCBE31E-A6C7-4342-B62E-DBAD220F4B59::net7.0::code.GroupByTests.GroupBy_WithCustomComparerClass&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::3FCBE31E-A6C7-4342-B62E-DBAD220F4B59::net7.0::code.GroupByTests.Lookup_IsTheSameThinsAsGroupBy&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
