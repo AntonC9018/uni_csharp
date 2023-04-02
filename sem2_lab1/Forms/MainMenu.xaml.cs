@@ -478,6 +478,7 @@ public sealed class MainMenuViewModel : ObservableObject
                     OnPropertyChanged(nameof(CanStartSorting));
                     OnPropertyChanged(nameof(CanCancelSorting));
                     OnPropertyChanged(nameof(CanRandomize));
+                    OnPropertyChanged(nameof(CanChangeItemCount));
                     return;
                 
                 case nameof(MainMenuModel.Items):
@@ -487,6 +488,7 @@ public sealed class MainMenuViewModel : ObservableObject
                     OnPropertyChanged(nameof(ItemCount));
                     OnPropertyChanged(nameof(CanShuffle));
                     OnPropertyChanged(nameof(CanRandomize));
+                    OnPropertyChanged(nameof(CanChangeItemCount));
                     break;
 
                 case nameof(MainMenuModel.SortingTask):
@@ -544,6 +546,8 @@ public sealed class MainMenuViewModel : ObservableObject
     public IEnumerable? ItemsCollection => _model.Items?.List;
     public bool CanCancelSorting => IsSortingInProgress;
     public bool CanRandomize => AreItemsInitialized && IsSortingNotInProgress;
+    
+    public bool CanChangeItemCount => AreItemsInitialized && IsSortingNotInProgress;
 }
 
 public sealed partial class MainMenu : Window

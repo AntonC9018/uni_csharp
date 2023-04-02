@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Laborator1"
         mc:Ignorable="d"
         Title="Main Menu">
     <DockPanel
@@ -41,21 +40,21 @@
             <Label>Item Kind</Label>
             <ComboBox
                 Name="ItemKindDropdown"
-                ItemsSource="{Binding ItemKinds}"
+                ItemsSource="{Binding ItemKinds, Mode=OneTime}"
                 SelectedItem="{Binding ItemKind}"
                 />
             
             <Label>Algorithm</Label>
             <ComboBox
                 Name="AlgorithmDropdown"
-                ItemsSource="{Binding AlgorithmKinds}"
+                ItemsSource="{Binding AlgorithmKinds, Mode=OneTime}"
                 SelectedItem="{Binding AlgorithmKind}"
                 />
             
             <Label>Filter</Label>
             <ComboBox
                 Name="FilterDropdown"
-                ItemsSource="{Binding SelectionFilterKinds}"
+                ItemsSource="{Binding SelectionFilterKinds, Mode=OneTime}"
                 SelectedItem="{Binding SelectionFilterKind}"
                 IsEnabled="{Binding AreItemsInitialized}"
                 />
@@ -82,7 +81,7 @@
             <Slider
                 Minimum="0"
                 Maximum="100"
-                IsEnabled="{Binding AreItemsInitialized, Mode=OneWay}"
+                IsEnabled="{Binding CanChangeItemCount, Mode=OneWay}"
                 Value="{Binding ItemCount, Mode=TwoWay}"
                 IsSnapToTickEnabled="True"
                 TickFrequency="1"
