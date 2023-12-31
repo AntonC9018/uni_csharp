@@ -37,7 +37,7 @@ public class GroupByTests
         // Internally, they are stored in a hash map (called Lookup in the source code)
         // that puts the buckets with the same hash next to each other,
         // as opposed to a dictionary, which puts them in a linked list.
-        Array.Sort(groups, (a, b) => String.Compare(a.Key, b.Key, StringComparison.Ordinal));
+        Array.Sort(groups, (a, b) => string.Compare(a.Key, b.Key, StringComparison.Ordinal));
         
         Assert.Equal(2, groups.Length);
         Assert.Equal("A", groups[0].Key);
@@ -54,13 +54,17 @@ public class GroupByTests
     public void GroupBy_ComplexKey_DefaultComparison()
     {
         var groups = _Records
-            .GroupBy(r => new { r.Name, r.Value })
+            .GroupBy(r => new { Name = r.Name, Value = r.Value })
             .ToArray();
         
-        Assert.Equal(_Records.Take(2), groups.Single(g => g.Key is { Name: "A", Value: 1.0f }));
-        Assert.Equal(_Records.Skip(2).Take(2), groups.Single(g => g.Key is { Name: "A", Value: 2.0f }));
-        Assert.Equal(_Records.Skip(4).Take(2), groups.Single(g => g.Key is { Name: "B", Value: 1.0f }));
-        Assert.Equal(_Records.Skip(6).Take(2), groups.Single(g => g.Key is { Name: "B", Value: 2.0f }));
+        Assert.Equal(_Records.Take(2), 
+            groups.Single(g => g.Key is { Name: "A", Value: 1.0f }));
+        Assert.Equal(_Records.Skip(2).Take(2), 
+            groups.Single(g => g.Key is { Name: "A", Value: 2.0f }));
+        Assert.Equal(_Records.Skip(4).Take(2), 
+            groups.Single(g => g.Key is { Name: "B", Value: 1.0f }));
+        Assert.Equal(_Records.Skip(6).Take(2), 
+            groups.Single(g => g.Key is { Name: "B", Value: 2.0f }));
     }
 
     [Fact]
@@ -70,10 +74,14 @@ public class GroupByTests
             .GroupBy(r => (r.Name, r.Value))
             .ToArray();
         
-        Assert.Equal(_Records.Take(2), groups.Single(g => g.Key is { Name: "A", Value: 1.0f }));
-        Assert.Equal(_Records.Skip(2).Take(2), groups.Single(g => g.Key is { Name: "A", Value: 2.0f }));
-        Assert.Equal(_Records.Skip(4).Take(2), groups.Single(g => g.Key is { Name: "B", Value: 1.0f }));
-        Assert.Equal(_Records.Skip(6).Take(2), groups.Single(g => g.Key is { Name: "B", Value: 2.0f }));
+        Assert.Equal(_Records.Take(2), 
+            groups.Single(g => g.Key is { Name: "A", Value: 1.0f }));
+        Assert.Equal(_Records.Skip(2).Take(2), 
+            groups.Single(g => g.Key is { Name: "A", Value: 2.0f }));
+        Assert.Equal(_Records.Skip(4).Take(2), 
+            groups.Single(g => g.Key is { Name: "B", Value: 1.0f }));
+        Assert.Equal(_Records.Skip(6).Take(2), 
+            groups.Single(g => g.Key is { Name: "B", Value: 2.0f }));
     }
 
 

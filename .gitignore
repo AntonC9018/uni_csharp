@@ -2,3 +2,5 @@ obj
 bin
 *.pdf
 calculator
+.idea
+*.sln.DotSettings.user
